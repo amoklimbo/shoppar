@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#171918">
+  <meta name="theme-color" content="#0d0f0e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Shoppar">
@@ -13,144 +13,212 @@
   <title>Shoppar</title>
 </head>
 <body>
-  <main>
-    <section id="pinScreen" class="screen pin-screen">
-      <div class="brand">
-        <img src="/icons/shoppar-512.png" alt="Shoppar">
-        <h1>Shoppar</h1>
-        <p data-i18n="subtitle">Shared shopping list</p>
-      </div>
+<main>
 
-      <div class="language">
-        <button id="langEN" class="lang active">EN</button>
-        <span>|</span>
-        <button id="langPT" class="lang">PT</button>
-      </div>
+  <!-- PIN -->
+  <section id="pinScreen" class="screen pin-screen">
+    <div class="pin-brand">
+      <img src="/icons/shoppar-512.png" alt="Shoppar">
+      <h1>Shoppar</h1>
+      <p data-i18n="subtitle">Shared shopping list</p>
+    </div>
 
+    <div class="pin-language">
+      <button id="langENPin" class="language-pill active" data-lang="EN">EN</button>
+      <button id="langPTPin" class="language-pill" data-lang="PT">PT</button>
+    </div>
+
+    <div class="pin-copy">
+      <span class="eyebrow">SHOPPAR</span>
       <h2 data-i18n="pinTitle">Enter your 4-digit PIN</h2>
-      <p class="hint" data-i18n="pinHint">Use the same PIN on both iPhones.</p>
+      <p data-i18n="pinHint">Use the same PIN on both iPhones.</p>
+    </div>
 
-      <div class="pin-dots" aria-hidden="true">
-        <span class="pin-dot"></span>
-        <span class="pin-dot"></span>
-        <span class="pin-dot"></span>
-        <span class="pin-dot"></span>
-      </div>
+    <div class="pin-dots">
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+    </div>
+    <div id="pinError" class="error" aria-live="polite"></div>
 
-      <div id="pinError" class="error" aria-live="polite"></div>
+    <div class="keypad">
+      <button data-digit="1">1</button><button data-digit="2">2</button><button data-digit="3">3</button>
+      <button data-digit="4">4</button><button data-digit="5">5</button><button data-digit="6">6</button>
+      <button data-digit="7">7</button><button data-digit="8">8</button><button data-digit="9">9</button>
+      <span></span><button data-digit="0">0</button><button id="deleteDigit" class="delete-key">⌫</button>
+    </div>
+    <button id="continuePin" class="primary pin-continue" disabled data-i18n="continue">Continue</button>
+  </section>
 
-      <div class="keypad">
-        <button data-digit="1">1</button>
-        <button data-digit="2">2</button>
-        <button data-digit="3">3</button>
-        <button data-digit="4">4</button>
-        <button data-digit="5">5</button>
-        <button data-digit="6">6</button>
-        <button data-digit="7">7</button>
-        <button data-digit="8">8</button>
-        <button data-digit="9">9</button>
-        <button class="empty-key" tabindex="-1"></button>
-        <button data-digit="0">0</button>
-        <button id="deleteDigit" class="delete-key">⌫</button>
-      </div>
-
-      <button id="continuePin" class="primary" disabled data-i18n="continue">Continue</button>
-    </section>
-
-    <section id="app" class="screen app-screen" hidden>
-      <header class="app-header">
-        <div class="header-brand">
-          <img src="/icons/shoppar-64.png" alt="">
-          <div>
-            <strong>Shoppar</strong>
-            <small data-i18n="subtitle">Shared shopping list</small>
-          </div>
+  <!-- APP -->
+  <section id="app" class="app-shell" hidden>
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img src="/icons/shoppar-64.png" alt="">
+        <div>
+          <strong>Shoppar</strong>
+          <small id="householdLabel" data-i18n="shared">Shared household</small>
         </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="themeToggle" class="icon-button" aria-label="Theme">☀️</button>
+        <button id="sync" class="icon-button" aria-label="Sync">↻</button>
+      </div>
+    </header>
 
-        <div class="header-actions">
-          <div class="app-language">
-            <button id="langENApp" class="lang" data-lang="EN">EN</button>
-            <span>|</span>
-            <button id="langPTApp" class="lang" data-lang="PT">PT</button>
-          </div>
-          <button id="themeToggle" title="Dark mode" aria-label="Dark mode">🌙</button>
-          <button id="sync" title="Sync">↻</button>
-          <button id="logout" title="Change PIN">⋯</button>
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <!-- LIST VIEW -->
+    <section id="listsView" class="view">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow" data-i18n="shopping">SHOPPING</span>
+          <h2 data-i18n="myLists">My lists</h2>
         </div>
-      </header>
+        <button id="clearCompleted" class="ghost-button" data-i18n="clearDone">Clear completed</button>
+      </div>
 
       <nav id="listTabs" class="list-tabs"></nav>
 
-      <section class="add-card">
-        <input id="itemName" autocomplete="off" data-i18n-placeholder="itemPlaceholder" placeholder="What do you need?">
-        <div class="add-row">
-          <input id="itemQty" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" aria-label="Quantity">
-          <input id="itemPrice" type="text" inputmode="decimal" placeholder="€" aria-label="Price">
-          <button id="addItem" class="primary small" data-i18n="add">Add</button>
+      <section class="add-panel">
+        <div class="add-title">
+          <span class="add-icon">＋</span>
+          <div>
+            <strong data-i18n="addItem">Add item</strong>
+            <small data-i18n="addItemHint">Add what you need, with quantity, price and category.</small>
+          </div>
+        </div>
+
+        <input id="itemName" class="main-input" autocomplete="off"
+               data-i18n-placeholder="itemPlaceholder" placeholder="What do you need?">
+
+        <div class="category-row">
+          <button class="category-chip active" data-category="Outros"><span>•</span><b data-category-label="Outros">Outros</b></button>
+          <button class="category-chip" data-category="Fruta"><span>●</span><b data-category-label="Fruta">Fruit</b></button>
+          <button class="category-chip" data-category="Vegetais"><span>●</span><b data-category-label="Vegetais">Vegetables</b></button>
+          <button class="category-chip" data-category="Laticínios"><span>●</span><b data-category-label="Laticínios">Dairy</b></button>
+          <button class="category-chip" data-category="Casa"><span>●</span><b data-category-label="Casa">Home</b></button>
+          <button class="category-chip" data-category="Higiene"><span>●</span><b data-category-label="Higiene">Hygiene</b></button>
+        </div>
+
+        <div class="add-fields">
+          <label><span data-i18n="quantity">Qty</span><input id="itemQty" type="number" min="0.1" step="0.1" value="1" inputmode="decimal"></label>
+          <label><span data-i18n="unit">Unit</span><input id="itemUnit" value="un."></label>
+          <label><span data-i18n="price">Price</span><input id="itemPrice" inputmode="decimal" placeholder="€"></label>
+          <button id="addItem" class="primary add-button" data-i18n="add">Add item</button>
         </div>
       </section>
 
-      <section class="list-card">
-        <div class="list-toolbar">
-          <span data-i18n="lists">Lists</span>
-          <button id="clearCompleted" class="text-button" data-i18n="clearDone">Clear completed</button>
-        </div>
+      <section class="list-panel">
         <div id="items"></div>
-        <div class="total-row">
-          <span>Total</span>
-          <strong id="total">€0.00</strong>
+        <div id="emptyState" class="empty-state" hidden>
+          <div class="empty-icon">🛒</div>
+          <strong data-i18n="empty">Your list is empty.</strong>
+          <span data-i18n="emptyHint">Add your first item above.</span>
+        </div>
+        <div class="list-footer">
+          <span data-i18n="total">Total</span>
+          <strong id="total">€0,00</strong>
         </div>
       </section>
     </section>
 
-    <div id="editModal" class="modal-backdrop" hidden>
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
-        <div class="modal-header">
-          <h2 id="editTitle" data-i18n="edit">Edit</h2>
-          <button id="editClose" class="modal-close" aria-label="Close">×</button>
+    <!-- HISTORY VIEW -->
+    <section id="historyView" class="view" hidden>
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow" data-i18n="historyEyebrow">ACTIVITY</span>
+          <h2 data-i18n="history">History</h2>
         </div>
-        <input id="editItemId" type="hidden">
-        <label>
-          <span data-i18n="itemName">Item</span>
-          <input id="editItemName" autocomplete="off">
-        </label>
-        <div class="modal-grid">
-          <label>
-            <span data-i18n="quantity">Qty</span>
-            <input id="editItemQty" type="number" min="0.1" step="0.1" inputmode="decimal">
-          </label>
-          <label>
-            <span data-i18n="unit">Unit</span>
-            <input id="editItemUnit">
-          </label>
-          <label>
-            <span data-i18n="price">Price</span>
-            <input id="editItemPrice" inputmode="decimal">
-          </label>
-          <label>
-            <span data-i18n="category">Category</span>
-            <input id="editItemCategory">
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button id="editCancel" class="secondary" data-i18n="cancel">Cancel</button>
-          <button id="editSave" class="primary" data-i18n="save">Save</button>
+        <div class="history-total" id="historyTotal">€0,00</div>
+      </div>
+      <div id="historyList" class="history-list"></div>
+      <div id="historyEmpty" class="empty-state">
+        <div class="empty-icon">◷</div>
+        <strong data-i18n="historyEmpty">Nothing completed yet.</strong>
+        <span data-i18n="historyEmptyHint">Completed shopping items will appear here.</span>
+      </div>
+    </section>
+
+    <!-- SETTINGS VIEW -->
+    <section id="settingsView" class="view" hidden>
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow" data-i18n="preferences">PREFERENCES</span>
+          <h2 data-i18n="settings">Settings</h2>
         </div>
       </div>
-    </div>
-  </main>
 
-  <script src="/app.js" defer></script>
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
-    }
-  </script>
-  <script>
-    // Prevent accidental pinch/double-tap zoom on iPhone while keeping normal scrolling.
-    document.addEventListener("gesturestart", e => e.preventDefault(), { passive: false });
-    document.addEventListener("gesturechange", e => e.preventDefault(), { passive: false });
-    document.addEventListener("gestureend", e => e.preventDefault(), { passive: false });
-  </script>
+      <section class="settings-card">
+        <div class="setting-row">
+          <div><strong data-i18n="language">Language</strong><small data-i18n="languageHint">Only this device changes.</small></div>
+          <div class="segmented">
+            <button id="langENApp" class="segment" data-lang="EN">EN</button>
+            <button id="langPTApp" class="segment" data-lang="PT">PT</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div><strong data-i18n="appearance">Appearance</strong><small data-i18n="appearanceHint">Only this device changes.</small></div>
+          <button id="settingsTheme" class="setting-control">Dark</button>
+        </div>
+
+        <div class="setting-row">
+          <div><strong data-i18n="sharedPin">Shared PIN</strong><small data-i18n="sharedPinHint">The PIN connects both iPhones to the same household.</small></div>
+          <button id="changePin" class="setting-control danger-text" data-i18n="changePin">Change</button>
+        </div>
+      </section>
+
+      <section class="settings-card about-card">
+        <div class="about-logo"><img src="/icons/shoppar-180.png" alt=""></div>
+        <strong>Shoppar</strong>
+        <span data-i18n="aboutText">Shared shopping, kept simple.</span>
+      </section>
+    </section>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="listsView"><span>☷</span><b data-i18n="listsNav">Lists</b></button>
+      <button class="nav-item" data-view="historyView"><span>◷</span><b data-i18n="historyNav">History</b></button>
+      <button class="nav-item" data-view="settingsView"><span>⚙</span><b data-i18n="settingsNav">Settings</b></button>
+    </nav>
+  </section>
+
+  <!-- EDIT -->
+  <div id="editModal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <div><span class="eyebrow" data-i18n="editEyebrow">ITEM</span><h2 data-i18n="edit">Edit item</h2></div>
+        <button id="editClose" class="modal-close">×</button>
+      </div>
+      <input id="editItemId" type="hidden">
+      <label><span data-i18n="itemName">Item</span><input id="editItemName"></label>
+      <div class="category-row modal-categories">
+        <button class="category-chip" data-edit-category="Outros">Outros</button>
+        <button class="category-chip" data-edit-category="Fruta">Fruit</button>
+        <button class="category-chip" data-edit-category="Vegetais">Vegetables</button>
+        <button class="category-chip" data-edit-category="Laticínios">Dairy</button>
+        <button class="category-chip" data-edit-category="Casa">Home</button>
+        <button class="category-chip" data-edit-category="Higiene">Hygiene</button>
+      </div>
+      <div class="modal-grid">
+        <label><span data-i18n="quantity">Qty</span><input id="editItemQty" type="number" min="0.1" step="0.1"></label>
+        <label><span data-i18n="unit">Unit</span><input id="editItemUnit"></label>
+        <label><span data-i18n="price">Price</span><input id="editItemPrice" inputmode="decimal"></label>
+        <label><span data-i18n="category">Category</span><input id="editItemCategory"></label>
+      </div>
+      <div class="modal-actions">
+        <button id="editCancel" class="secondary" data-i18n="cancel">Cancel</button>
+        <button id="editSave" class="primary" data-i18n="save">Save changes</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="/app.js" defer></script>
+<script>
+if ("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
+document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});
+document.addEventListener("gestureend",e=>e.preventDefault(),{passive:false});
+</script>
 </body>
 </html>
