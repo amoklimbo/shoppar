@@ -3,6 +3,8 @@ const TOKEN_KEY = "shoppar_token";
 const PIN_KEY = "shoppar_pin";
 const LANG_KEY = "shoppar_lang";
 const THEME_KEY = "shoppar_theme";
+const LOCK_TIMEOUT = 30 * 1000;
+let backgroundAt = null;
 
 const state = {
   lang: localStorage.getItem(LANG_KEY) || "EN",
@@ -23,35 +25,35 @@ const translations = {
     subtitle:"Shared shopping list", shared:"Shared household", pinTitle:"Enter your 4-digit PIN",
     pinHint:"Use the same PIN on both iPhones.", continue:"Continue", invalidPin:"PIN must contain 4 digits.",
     connectionError:"Could not connect. Please try again.", shopping:"SHOPPING", myLists:"My lists",
-    addItem:"Add item", addItemHint:"Add what you need, with quantity, price and category.",
-    itemPlaceholder:"What do you need?", add:"Add item", quantity:"Qty", unit:"Unit", price:"Price",
-    total:"Total", clearDone:"Clear completed", empty:"Your list is empty.", emptyHint:"Add your first item above.",
+    addItem:"Add product", addItemHint:"Add a product with quantity, price and category.",
+    itemPlaceholder:"What do you need?", add:"Add product", quantity:"Qty", unit:"Unit", price:"Price",
+    total:"Total", clearDone:"Clear completed", empty:"Your list is empty.", emptyHint:"Add your first product above.",
     historyEyebrow:"ACTIVITY", history:"History", historyEmpty:"Nothing completed yet.",
-    historyEmptyHint:"Completed shopping items will appear here.", preferences:"PREFERENCES", settings:"Settings",
+    historyEmptyHint:"Completed products will appear here.", preferences:"PREFERENCES", settings:"Settings",
     language:"Language", languageHint:"Only this device changes.", appearance:"Appearance",
     appearanceHint:"Only this device changes.", sharedPin:"Shared PIN",
-    sharedPinHint:"The PIN connects both iPhones to the same household.", changePin:"Change",
-    aboutText:"Shared shopping, kept simple.", listsNav:"Lists", historyNav:"History", settingsNav:"Settings",
-    editEyebrow:"ITEM", edit:"Edit item", save:"Save changes", cancel:"Cancel", itemName:"Item",
-    category:"Category", deleteItem:"Delete item", light:"Light", dark:"Dark", noHistory:"No completed items.",
-    confirmDelete:"Delete this item?", syncDone:"Synced", saved:"Saved", added:"Added"
+    sharedPinHint:"The PIN connects both iPhones to the same household.", changePin:"Change PIN",
+    aboutText:"Shared shopping, made simple.", listsNav:"Lists", historyNav:"History", settingsNav:"Settings",
+    editEyebrow:"PRODUCT", edit:"Edit product", save:"Save changes", cancel:"Cancel", itemName:"Product",
+    category:"Category", deleteItem:"Delete product", light:"Light", dark:"Dark", noHistory:"No completed products.",
+    confirmDelete:"Delete this product?", syncDone:"Synced", saved:"Saved", added:"Added"
   },
   PT:{
-    subtitle:"Lista de compras partilhada", shared:"Agregado partilhado", pinTitle:"Introduz o PIN de 4 dígitos",
+    subtitle:"Lista de compras partilhada", shared:"Agregado familiar partilhado", pinTitle:"Introduz o PIN de 4 dígitos",
     pinHint:"Usa o mesmo PIN nos dois iPhones.", continue:"Continuar", invalidPin:"O PIN tem de ter 4 dígitos.",
-    connectionError:"Não foi possível ligar.", shopping:"COMPRAS", myLists:"As minhas listas",
-    addItem:"Adicionar artigo", addItemHint:"Adiciona o que precisas, com quantidade, preço e categoria.",
-    itemPlaceholder:"O que precisas?", add:"Adicionar", quantity:"Qtd.", unit:"Unidade", price:"Preço",
-    total:"Total", clearDone:"Limpar concluídos", empty:"A lista está vazia.", emptyHint:"Adiciona o primeiro artigo acima.",
-    historyEyebrow:"ATIVIDADE", history:"Histórico", historyEmpty:"Ainda não há compras concluídas.",
-    historyEmptyHint:"Os artigos concluídos aparecem aqui.", preferences:"PREFERÊNCIAS", settings:"Definições",
+    connectionError:"Não foi possível ligar. Tenta novamente.", shopping:"COMPRAS", myLists:"As minhas listas",
+    addItem:"Adicionar produto", addItemHint:"Adiciona um produto com quantidade, preço e categoria.",
+    itemPlaceholder:"O que precisas?", add:"Adicionar produto", quantity:"Qtd.", unit:"Unidade", price:"Preço",
+    total:"Total", clearDone:"Limpar concluídos", empty:"A lista está vazia.", emptyHint:"Adiciona o primeiro produto acima.",
+    historyEyebrow:"ATIVIDADE", history:"Histórico", historyEmpty:"Ainda não há produtos concluídos.",
+    historyEmptyHint:"Os produtos concluídos aparecem aqui.", preferences:"PREFERÊNCIAS", settings:"Definições",
     language:"Idioma", languageHint:"Só altera este dispositivo.", appearance:"Aparência",
     appearanceHint:"Só altera este dispositivo.", sharedPin:"PIN partilhado",
-    sharedPinHint:"O PIN liga os dois iPhones ao mesmo agregado.", changePin:"Alterar",
-    aboutText:"Compras partilhadas, sem complicações.", listsNav:"Listas", historyNav:"Histórico", settingsNav:"Definições",
-    editEyebrow:"ARTIGO", edit:"Editar artigo", save:"Guardar alterações", cancel:"Cancelar", itemName:"Artigo",
-    category:"Categoria", deleteItem:"Eliminar artigo", light:"Claro", dark:"Escuro", noHistory:"Não há artigos concluídos.",
-    confirmDelete:"Eliminar este artigo?", syncDone:"Sincronizado", saved:"Guardado", added:"Adicionado"
+    sharedPinHint:"O PIN liga os dois iPhones ao mesmo agregado familiar.", changePin:"Alterar PIN",
+    aboutText:"Compras partilhadas, de forma simples.", listsNav:"Listas", historyNav:"Histórico", settingsNav:"Definições",
+    editEyebrow:"PRODUTO", edit:"Editar produto", save:"Guardar alterações", cancel:"Cancelar", itemName:"Produto",
+    category:"Categoria", deleteItem:"Eliminar produto", light:"Claro", dark:"Escuro", noHistory:"Não há produtos concluídos.",
+    confirmDelete:"Eliminar este produto?", syncDone:"Sincronizado", saved:"Guardado", added:"Adicionado"
   }
 };
 
@@ -104,6 +106,26 @@ async function api(path,options={}){
   let data={}; try{data=await r.json()}catch{}
   if(!r.ok){const e=new Error(data.error||t("connectionError"));e.status=r.status;throw e;}
   return data;
+}
+
+// App lock: keep the token for synchronization, but hide the app after
+// 30 seconds in the background. Returning before 30s keeps the session.
+// Returning after 30s requires the 4-digit PIN again.
+function lockApp() {
+  $("#app").hidden = true;
+  $("#pinScreen").hidden = false;
+  entered = "";
+  updatePinDots();
+  $("#pinError").textContent = "";
+}
+
+function checkAppLock() {
+  if (backgroundAt === null) return;
+  const elapsed = Date.now() - backgroundAt;
+  backgroundAt = null;
+  if (elapsed >= LOCK_TIMEOUT && localStorage.getItem(TOKEN_KEY)) {
+    lockApp();
+  }
 }
 
 // PIN
@@ -291,6 +313,16 @@ function bind(){
   $$(".nav-item").forEach(b=>b.onclick=()=>showView(b.dataset.view));
   $("#changePin").onclick=()=>{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(PIN_KEY);$("#app").hidden=true;$("#pinScreen").hidden=false;showView("listsView");};
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    if (localStorage.getItem(TOKEN_KEY)) backgroundAt = Date.now();
+    return;
+  }
+  checkAppLock();
+});
+
+window.addEventListener("pageshow", checkAppLock);
 
 async function start(){
   applyTheme();applyLanguage();bind();updatePinDots();
