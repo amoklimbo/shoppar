@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-PT">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -15,9 +15,14 @@
 <body>
 <div id="pin" class="pin">
   <div class="pin-card">
+    <div class="language-selector" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <span>·</span>
+      <button type="button" data-lang="pt">PT</button>
+    </div>
     <img src="icons/shoopar-180.png" class="pin-logo" alt="Shoopar">
     <h1>Shoopar</h1>
-    <p id="pinText">Cria um PIN de 4 dígitos</p>
+    <p id="pinText"></p>
     <div class="dots"><i></i><i></i><i></i><i></i></div>
     <div class="keys">
       <button>1</button><button>2</button><button>3</button>
@@ -31,28 +36,32 @@
 
 <div id="app" hidden>
 <header>
-  <div class="brand"><img src="icons/shoopar-64.png" alt=""><div><div class="eyebrow">SHOPPAR</div><h1>Compras</h1></div></div>
-  <div class="header-actions"><button id="theme">☾</button><button id="lock">⌑</button></div>
+  <div class="brand"><img src="icons/shoopar-64.png" alt=""><div><div class="eyebrow">SHOOPAR</div><h1 id="appTitle"></h1></div></div>
+  <div class="header-actions">
+    <div class="language-selector compact" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <span>·</span>
+      <button type="button" data-lang="pt">PT</button>
+    </div>
+    <button id="theme" aria-label="Toggle theme">☾</button><button id="lock" aria-label="Lock">⌑</button>
+  </div>
 </header>
 <nav id="lists"></nav>
 <main>
 <section class="stats">
-  <div><b id="remaining">0</b><span>por comprar</span></div>
-  <div><b id="cost">0,00 €</b><span>total estimado</span></div>
+  <div><b id="remaining">0</b><span id="remainingLabel"></span></div>
+  <div><b id="cost">0,00 €</b><span id="costLabel"></span></div>
 </section>
 <section class="add">
-  <input id="name" placeholder="Adicionar produto..." maxlength="100">
-  <select id="category">
-    <option>Supermercado</option><option>Fruta e legumes</option><option>Higiene</option>
-    <option>Casa</option><option>Bebidas</option><option>Outros</option>
-  </select>
-  <div class="row"><input id="price" inputmode="decimal" placeholder="Preço €"><input id="qty" inputmode="decimal" value="1" placeholder="Qtd."><button id="add">+</button></div>
+  <input id="name" maxlength="100">
+  <select id="category"></select>
+  <div class="row"><input id="price" inputmode="decimal"><input id="qty" inputmode="decimal" value="1"><button id="add" aria-label="Add item">+</button></div>
 </section>
-<div class="filters"><button class="active" data-filter="all">Todos</button><button data-filter="pending">Por comprar</button><button data-filter="done">Comprados</button></div>
+<div class="filters"><button class="active" data-filter="all"></button><button data-filter="pending"></button><button data-filter="done"></button></div>
 <ul id="items"></ul>
-<section class="actions"><button id="history">Histórico</button><button id="clear">Limpar comprados</button></section>
+<section class="actions"><button id="history"></button><button id="clear"></button></section>
 </main>
-<div id="modal" class="modal" hidden><div class="modal-card"><button id="closeModal" class="close">×</button><h2>Histórico</h2><div id="historyList"></div></div></div>
+<div id="modal" class="modal" hidden><div class="modal-card"><button id="closeModal" class="close" aria-label="Close">×</button><h2 id="historyTitle"></h2><div id="historyList"></div></div></div>
 </div>
 <script src="app.js"></script>
 </body>
