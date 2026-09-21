@@ -3,10 +3,10 @@ const TOKEN_KEY='shoppar-token-v1', PIN_KEY='shoppar-pin-v1', THEME_KEY='shoppar
 
 const translations={
   en:{
-    htmlLang:'en', title:'Shopping', createPin:'Create a 4-digit PIN', enterPin:'Enter your 4-digit PIN', remaining:'to buy', estimated:'estimated total', addProduct:'Add product...', price:'Price €', qty:'Qty.', all:'All', pending:'To buy', done:'Purchased', history:'History', clear:'Clear purchased', noHistory:'No history yet.', groceries:'Groceries', home:'Home', supermarket:'Supermarket', produce:'Fruit & vegetables', hygiene:'Hygiene', house:'Home', drinks:'Drinks', other:'Other', unit:'unit', error:'Something went wrong.', invalidPin:'Please enter 4 digits.', invalidLogin:'Invalid PIN.'
+    htmlLang:'en', title:'Shopping', createPin:'Create a 4-digit PIN', enterPin:'Enter your 4-digit PIN', remaining:'to buy', estimated:'estimated total', addProduct:'Add product...', price:'Price €', qty:'Qty.', all:'All', pending:'To buy', done:'Purchased', history:'History', clear:'Clear purchased', noHistory:'No history yet.', groceries:'Groceries', home:'Home', supermarket:'Supermarket', produce:'Fruit & vegetables', hygiene:'Hygiene', house:'Home', drinks:'Drinks', other:'Other', unit:'unit', error:'Something went wrong.', invalidPin:'Please enter 4 digits.', invalidLogin:'Invalid PIN.', continuePin:'Continue'
   },
   pt:{
-    htmlLang:'pt-PT', title:'Compras', createPin:'Cria um PIN de 4 dígitos', enterPin:'Introduz o PIN de 4 dígitos', remaining:'por comprar', estimated:'total estimado', addProduct:'Adicionar produto...', price:'Preço €', qty:'Qtd.', all:'Todos', pending:'Por comprar', done:'Comprados', history:'Histórico', clear:'Limpar comprados', noHistory:'Sem histórico.', groceries:'Supermercado', home:'Casa', supermarket:'Supermercado', produce:'Fruta e legumes', hygiene:'Higiene', house:'Casa', drinks:'Bebidas', other:'Outros', unit:'un.', error:'Ocorreu um erro.', invalidPin:'Introduz 4 dígitos.', invalidLogin:'PIN inválido.'
+    htmlLang:'pt-PT', title:'Compras', createPin:'Cria um PIN de 4 dígitos', enterPin:'Introduz o PIN de 4 dígitos', remaining:'por comprar', estimated:'total estimado', addProduct:'Adicionar produto...', price:'Preço €', qty:'Qtd.', all:'Todos', pending:'Por comprar', done:'Comprados', history:'Histórico', clear:'Limpar comprados', noHistory:'Sem histórico.', groceries:'Supermercado', home:'Casa', supermarket:'Supermercado', produce:'Fruta e legumes', hygiene:'Higiene', house:'Casa', drinks:'Bebidas', other:'Outros', unit:'un.', error:'Ocorreu um erro.', invalidPin:'Introduz 4 dígitos.', invalidLogin:'PIN inválido.', continuePin:'Continuar'
   }
 };
 
@@ -68,6 +68,9 @@ function pinUI(){
   $('#pinError').textContent='';
   entered='';
   dots();
+  const btn=$('#continuePin');
+  btn.textContent=t('continuePin');
+  btn.disabled=true;
 }
 
 async function submitPin(){
@@ -89,8 +92,10 @@ document.querySelectorAll('.keys button').forEach(b=>b.onclick=()=>{
   if(b.id==='back')entered=entered.slice(0,-1);
   else if(entered.length<4)entered+=b.textContent.trim();
   dots();
-  if(entered.length===4)setTimeout(submitPin,100);
+  $('#continuePin').disabled=entered.length!==4;
 });
+
+$('#continuePin').onclick=submitPin;
 
 async function load(){lists=await api('/api/lists');if(!currentList)currentList=lists[0]?.id;renderLists();if(currentList)await loadItems()}
 async function loadItems(){items=await api(`/api/lists/${currentList}/items`);render()}
