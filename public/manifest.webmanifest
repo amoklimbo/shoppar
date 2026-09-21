@@ -1,13 +1,20 @@
 {
-  "name":"Shoppar",
-  "short_name":"Shoppar",
-  "start_url":"./",
-  "display":"standalone",
-  "background_color":"#111111",
-  "theme_color":"#111111",
-  "lang":"pt-PT",
-  "icons":[
-    {"src":"icons/shoppar-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"icons/shoppar-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  "name": "Shoppar",
+  "short_name": "Shoppar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f2",
+  "theme_color": "#171918",
+  "icons": [
+    {
+      "src": "/icons/shoppar-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/shoppar-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

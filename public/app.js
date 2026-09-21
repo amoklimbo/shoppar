@@ -1,155 +1,393 @@
-const API_URL='https://shoppar.amok-limbo.workers.dev';
-const TOKEN_KEY='shoppar-token-v1', PIN_KEY='shoppar-pin-v1', THEME_KEY='shoppar-theme', LANG_KEY='shoppar-lang-v1';
+const API = "https://shoppar.amok-limbo.workers.dev";
+const TOKEN_KEY = "shoppar_token";
+const PIN_KEY = "shoppar_pin";
+const LANG_KEY = "shoppar_lang";
 
-const translations={
-  en:{
-    htmlLang:'en', title:'Shopping', createPin:'Enter your 4-digit PIN', enterPin:'Enter your 4-digit PIN', remaining:'to buy', estimated:'estimated total', addProduct:'Add product...', price:'Price €', qty:'Qty.', all:'All', pending:'To buy', done:'Purchased', history:'History', clear:'Clear purchased', noHistory:'No history yet.', groceries:'Groceries', home:'Home', supermarket:'Supermarket', produce:'Fruit & vegetables', hygiene:'Hygiene', house:'Home', drinks:'Drinks', other:'Other', unit:'unit', error:'Something went wrong.', invalidPin:'Please enter 4 digits.', invalidLogin:'Invalid PIN.', continuePin:'Continue'
+const state = {
+  lang: localStorage.getItem(LANG_KEY) || "EN",
+  lists: [],
+  activeList: null,
+  items: []
+};
+
+const $ = (sel) => document.querySelector(sel);
+
+const translations = {
+  EN: {
+    appTitle: "Shoppar",
+    subtitle: "Shared shopping list",
+    pinTitle: "Enter your 4-digit PIN",
+    pinSetup: "Create your shared PIN",
+    pinHint: "Use the same PIN on both iPhones.",
+    continue: "Continue",
+    invalidPin: "PIN must contain 4 digits.",
+    connectionError: "Could not connect. Please try again.",
+    lists: "Lists",
+    addItem: "Add item",
+    itemPlaceholder: "What do you need?",
+    add: "Add",
+    empty: "Your list is empty.",
+    supermarket: "Supermarket",
+    home: "Home",
+    history: "History",
+    clearDone: "Clear completed",
+    quantity: "Qty",
+    price: "Price",
+    category: "Category",
+    other: "Other",
+    logout: "Change PIN",
+    sync: "Sync"
   },
-  pt:{
-    htmlLang:'pt-PT', title:'Compras', createPin:'Introduz o PIN de 4 dígitos', enterPin:'Introduz o PIN de 4 dígitos', remaining:'por comprar', estimated:'total estimado', addProduct:'Adicionar produto...', price:'Preço €', qty:'Qtd.', all:'Todos', pending:'Por comprar', done:'Comprados', history:'Histórico', clear:'Limpar comprados', noHistory:'Sem histórico.', groceries:'Supermercado', home:'Casa', supermarket:'Supermercado', produce:'Fruta e legumes', hygiene:'Higiene', house:'Casa', drinks:'Bebidas', other:'Outros', unit:'un.', error:'Ocorreu um erro.', invalidPin:'Introduz 4 dígitos.', invalidLogin:'PIN inválido.', continuePin:'Continuar'
+  PT: {
+    appTitle: "Shoppar",
+    subtitle: "Lista de compras partilhada",
+    pinTitle: "Introduz o PIN de 4 dígitos",
+    pinSetup: "Cria o teu PIN partilhado",
+    pinHint: "Usa o mesmo PIN nos dois iPhones.",
+    continue: "Continuar",
+    invalidPin: "O PIN tem de ter 4 dígitos.",
+    connectionError: "Não foi possível ligar. Tenta novamente.",
+    lists: "Listas",
+    addItem: "Adicionar artigo",
+    itemPlaceholder: "O que precisas?",
+    add: "Adicionar",
+    empty: "A lista está vazia.",
+    supermarket: "Supermercado",
+    home: "Casa",
+    history: "Histórico",
+    clearDone: "Limpar concluídos",
+    quantity: "Qtd.",
+    price: "Preço",
+    category: "Categoria",
+    other: "Outros",
+    logout: "Alterar PIN",
+    sync: "Sincronizar"
   }
 };
 
-const categoryKeys=['supermarket','produce','hygiene','house','drinks','other'];
-const legacyCategoryMap={'Supermercado':'supermarket','Fruta e legumes':'produce','Higiene':'hygiene','Casa':'house','Bebidas':'drinks','Outros':'other'};
-const defaultListMap={'Supermercado':'groceries','Casa':'home'};
-let token=localStorage.getItem(TOKEN_KEY), pin=localStorage.getItem(PIN_KEY), entered='', filter='all', lists=[], currentList=null, items=[];
-let lang=localStorage.getItem(LANG_KEY)||'en';
+function t(key) {
+  return translations[state.lang]?.[key] || translations.EN[key] || key;
+}
 
-const $=s=>document.querySelector(s);
-const t=k=>translations[lang][k]??translations.en[k]??k;
-const categoryLabel=k=>t(k);
-const normalizeCategory=c=>legacyCategoryMap[c]||c||'other';
-const api=async(path,opts={})=>{
-  if(API_URL.includes('COLOCA_AQUI')) throw new Error('Falta configurar o URL do Worker em public/app.js.');
-  const headers={'content-type':'application/json',...(opts.headers||{})};
-  if(token)headers['x-household-token']=token;
-  const r=await fetch(API_URL+path,{...opts,headers});
-  const d=await r.json();
-  if(!r.ok){const err=new Error(d.error||t('error'));err.status=r.status;throw err;}
-  return d;
-};
+function applyLanguage() {
+  document.documentElement.lang = state.lang === "PT" ? "pt-PT" : "en";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  const input = $("#itemName");
+  if (input) input.placeholder = t("itemPlaceholder");
+  $("#langEN")?.classList.toggle("active", state.lang === "EN");
+  $("#langPT")?.classList.toggle("active", state.lang === "PT");
+}
 
-function setLanguage(next){
-  if(!translations[next])return;
-  lang=next;
-  localStorage.setItem(LANG_KEY,lang);
-  document.documentElement.lang=translations[lang].htmlLang;
-  applyTranslations();
+function setLanguage(lang) {
+  state.lang = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  applyLanguage();
+}
+
+async function api(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  headers.set("Content-Type", "application/json");
+
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) headers.set("X-Household-Token", token);
+
+  const response = await fetch(`${API}${path}`, {
+    ...options,
+    headers
+  });
+
+  let data = {};
+  try { data = await response.json(); } catch {}
+
+  if (!response.ok) {
+    const error = new Error(data.error || t("connectionError"));
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
+// ---------- PIN ----------
+let entered = "";
+
+function updatePinDots() {
+  document.querySelectorAll(".pin-dot").forEach((dot, i) => {
+    dot.classList.toggle("filled", i < entered.length);
+  });
+  $("#continuePin").disabled = entered.length !== 4;
+}
+
+function addDigit(digit) {
+  if (entered.length >= 4) return;
+  entered += digit;
+  updatePinDots();
+}
+
+function removeDigit() {
+  entered = entered.slice(0, -1);
+  updatePinDots();
+}
+
+async function submitPin() {
+  if (entered.length !== 4) return;
+
+  const pin = entered;
+  $("#pinError").textContent = "";
+  $("#continuePin").disabled = true;
+
+  try {
+    // ONE endpoint. Existing PIN joins; new PIN creates.
+    const result = await api("/api/access", {
+      method: "POST",
+      body: JSON.stringify({ pin })
+    });
+
+    localStorage.setItem(TOKEN_KEY, result.token);
+    localStorage.setItem(PIN_KEY, pin);
+
+    $("#pinScreen").hidden = true;
+    $("#app").hidden = false;
+
+    entered = "";
+    updatePinDots();
+    await loadLists();
+  } catch (error) {
+    $("#pinError").textContent = error.message || t("connectionError");
+    entered = "";
+    updatePinDots();
+  }
+}
+
+function showPinScreen() {
+  $("#pinScreen").hidden = false;
+  $("#app").hidden = true;
+  entered = "";
+  updatePinDots();
+}
+
+// ---------- App ----------
+async function loadLists() {
+  const data = await api("/api/lists");
+  state.lists = data.results || [];
+
+  if (!state.activeList || !state.lists.some(l => l.id === state.activeList.id)) {
+    state.activeList = state.lists[0] || null;
+  }
+
   renderLists();
-  render();
-  pinUI();
+  await loadItems();
 }
 
-function applyTranslations(){
-  $('#appTitle').textContent=t('title');
-  $('#remainingLabel').textContent=t('remaining');
-  $('#costLabel').textContent=t('estimated');
-  $('#name').placeholder=t('addProduct');
-  $('#price').placeholder=t('price');
-  $('#qty').placeholder=t('qty');
-  document.querySelectorAll('.filters button').forEach(b=>b.textContent=t(b.dataset.filter));
-  $('#history').textContent=t('history');
-  $('#clear').textContent=t('clear');
-  $('#historyTitle').textContent=t('history');
-  document.querySelectorAll('.language-selector [data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));
-  renderCategories();
+async function loadItems() {
+  if (!state.activeList) {
+    state.items = [];
+    renderItems();
+    return;
+  }
+
+  const data = await api(`/api/lists/${state.activeList.id}/items`);
+  state.items = data.results || [];
+  renderItems();
 }
 
-function renderCategories(){
-  const current=normalizeCategory($('#category').value);
-  $('#category').innerHTML=categoryKeys.map(k=>`<option value="${k}">${categoryLabel(k)}</option>`).join('');
-  $('#category').value=categoryKeys.includes(current)?current:'supermarket';
+function renderLists() {
+  const container = $("#listTabs");
+  container.innerHTML = "";
+
+  state.lists.forEach(list => {
+    const button = document.createElement("button");
+    button.className = `list-tab ${state.activeList?.id === list.id ? "active" : ""}`;
+    button.textContent =
+      list.name === "Supermercado" ? t("supermarket") :
+      list.name === "Casa" ? t("home") :
+      list.name;
+
+    button.addEventListener("click", async () => {
+      state.activeList = list;
+      renderLists();
+      await loadItems();
+    });
+
+    container.appendChild(button);
+  });
 }
 
-function dots(){document.querySelectorAll('.dots i').forEach((x,i)=>x.classList.toggle('on',i<entered.length))}
-function pinUI(){
-  $('#pinText').textContent=pin?t('enterPin'):t('createPin');
-  $('#pinError').textContent='';
-  entered='';
-  dots();
-  const btn=$('#continuePin');
-  btn.textContent=t('continuePin');
-  btn.disabled=true;
+function formatPrice(price) {
+  if (price === null || price === undefined || price === "") return "";
+  const value = Number(price);
+  if (!Number.isFinite(value)) return "";
+  return new Intl.NumberFormat(state.lang === "PT" ? "pt-PT" : "en-GB", {
+    style: "currency",
+    currency: "EUR"
+  }).format(value);
 }
 
-async function submitPin(){
-  if(entered.length!==4)return;
-  const enteredPin=entered;
-  try{
-    let d;
-    // First device creates the shared household; subsequent devices log in.
-    try{
-      d=await api('/api/login',{method:'POST',body:JSON.stringify({pin:enteredPin})});
-    }catch(e){
-      if(e.status!==404)throw e;
-      d=await api('/api/setup',{method:'POST',body:JSON.stringify({pin:enteredPin})});
-    }
-    token=d.token;
-    pin=enteredPin;
-    localStorage.setItem(TOKEN_KEY,token);
-    localStorage.setItem(PIN_KEY,pin);
-    $('#pin').hidden=true;
-    $('#app').hidden=false;
-    await load();
-  }catch(e){
-    $('#pinError').textContent=e.message||t('error');
-    entered='';
-    dots();
-    $('#continuePin').disabled=true;
+function renderItems() {
+  const container = $("#items");
+  container.innerHTML = "";
+
+  if (!state.items.length) {
+    container.innerHTML = `<div class="empty">${t("empty")}</div>`;
+    updateTotal();
+    return;
+  }
+
+  state.items.forEach(item => {
+    const row = document.createElement("div");
+    row.className = `item ${item.done ? "done" : ""}`;
+
+    const check = document.createElement("button");
+    check.className = "check";
+    check.setAttribute("aria-label", item.done ? "Undo" : "Complete");
+    check.textContent = item.done ? "✓" : "";
+    check.addEventListener("click", () => toggleItem(item));
+
+    const body = document.createElement("div");
+    body.className = "item-body";
+
+    const name = document.createElement("div");
+    name.className = "item-name";
+    name.textContent = item.name;
+
+    const meta = document.createElement("div");
+    meta.className = "item-meta";
+    const qty = `${item.quantity} ${item.unit}`;
+    const price = formatPrice(item.price);
+    meta.textContent = price ? `${qty} · ${price}` : qty;
+
+    body.append(name, meta);
+
+    const del = document.createElement("button");
+    del.className = "delete";
+    del.textContent = "×";
+    del.setAttribute("aria-label", "Delete");
+    del.addEventListener("click", () => deleteItem(item));
+
+    row.append(check, body, del);
+    container.appendChild(row);
+  });
+
+  updateTotal();
+}
+
+function updateTotal() {
+  const total = state.items
+    .filter(i => !i.done && i.price !== null && i.price !== undefined)
+    .reduce((sum, i) => sum + Number(i.price) * Number(i.quantity || 1), 0);
+
+  $("#total").textContent = formatPrice(total);
+}
+
+async function addItem() {
+  const input = $("#itemName");
+  const name = input.value.trim();
+  if (!name || !state.activeList) return;
+
+  const priceInput = $("#itemPrice");
+  const qtyInput = $("#itemQty");
+
+  const price = priceInput.value.trim() === "" ? null : Number(priceInput.value.replace(",", "."));
+  const quantity = Number(qtyInput.value || 1);
+
+  try {
+    await api(`/api/lists/${state.activeList.id}/items`, {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        category: "Outros",
+        price: Number.isFinite(price) ? price : null,
+        quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+        unit: "un."
+      })
+    });
+
+    input.value = "";
+    priceInput.value = "";
+    qtyInput.value = "1";
+    await loadItems();
+    input.focus();
+  } catch (error) {
+    alert(error.message || t("connectionError"));
   }
 }
 
-document.querySelectorAll('.language-selector [data-lang]').forEach(b=>b.onclick=()=>setLanguage(b.dataset.lang));
-document.querySelectorAll('.keys button').forEach(b=>b.onclick=()=>{
-  if(b.id==='back')entered=entered.slice(0,-1);
-  else if(entered.length<4)entered+=b.textContent.trim();
-  dots();
-  $('#continuePin').disabled=entered.length!==4;
-});
-
-$('#continuePin').onclick=submitPin;
-
-async function load(){lists=await api('/api/lists');if(!currentList)currentList=lists[0]?.id;renderLists();if(currentList)await loadItems()}
-async function loadItems(){items=await api(`/api/lists/${currentList}/items`);render()}
-function listName(x){return defaultListMap[x.name]?t(defaultListMap[x.name]):x.name}
-function renderLists(){
-  $('#lists').innerHTML=lists.map(x=>`<button data-id="${x.id}" class="${x.id===currentList?'active':''}">${escapeHtml(listName(x))}</button>`).join('');
-  document.querySelectorAll('#lists button').forEach(b=>b.onclick=async()=>{currentList=b.dataset.id;renderLists();await loadItems()});
-}
-function money(n){return n==null?'':Number(n).toLocaleString(lang==='pt'?'pt-PT':'en-GB',{style:'currency',currency:'EUR'})}
-function dateTime(ts){return new Date(ts).toLocaleString(lang==='pt'?'pt-PT':'en-GB')}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-function render(){
-  const visible=items.filter(x=>filter==='all'||(filter==='pending'&&!x.done)||(filter==='done'&&x.done));
-  $('#items').innerHTML=visible.map(x=>{
-    const category=categoryLabel(normalizeCategory(x.category));
-    return `<li class="${x.done?'done':''}"><button class="check" data-done="${x.id}" aria-label="${x.done?t('done'):t('pending')}"></button><div class="body"><span class="name">${escapeHtml(x.name)}</span><span class="meta">${escapeHtml(category)} · ${x.quantity} ${escapeHtml(x.unit||t('unit'))}${x.price!=null?' · '+money(x.price):''}</span></div><button class="del" data-del="${x.id}" aria-label="Delete">×</button></li>`;
-  }).join('');
-  $('#remaining').textContent=items.filter(x=>!x.done).length;
-  const total=items.filter(x=>!x.done&&x.price!=null).reduce((s,x)=>s+x.price*x.quantity,0);
-  $('#cost').textContent=money(total)||(lang==='pt'?'0,00 €':'€0.00');
-  document.querySelectorAll('[data-done]').forEach(b=>b.onclick=async()=>{const x=items.find(i=>i.id===b.dataset.done);await api('/api/items/'+x.id,{method:'PUT',body:JSON.stringify({...x,done:!x.done})});await loadItems()});
-  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{await api('/api/items/'+b.dataset.del,{method:'DELETE'});await loadItems()});
+async function toggleItem(item) {
+  try {
+    await api(`/api/items/${item.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ done: !item.done })
+    });
+    await loadItems();
+  } catch (error) {
+    alert(error.message || t("connectionError"));
+  }
 }
 
-$('#add').onclick=async()=>{
-  const name=$('#name').value.trim();
-  if(!name)return;
-  await api(`/api/lists/${currentList}/items`,{method:'POST',body:JSON.stringify({name,category:$('#category').value,price:$('#price').value,quantity:$('#qty').value,unit:lang==='pt'?'un.':'unit'})});
-  $('#name').value='';$('#price').value='';$('#qty').value='1';await loadItems();$('#name').focus();
-};
-$('#name').onkeydown=e=>{if(e.key==='Enter')$('#add').click()};
-document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('.filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()});
-$('#clear').onclick=async()=>{for(const x of items.filter(i=>i.done))await api('/api/items/'+x.id,{method:'DELETE'});await loadItems()};
-$('#history').onclick=async()=>{const h=await api(`/api/lists/${currentList}/history`);$('#historyList').innerHTML=h.length?h.map(x=>`<div class="hist"><b>${escapeHtml(x.item_name)}</b><br><small>${dateTime(x.completed_at)} · ${escapeHtml(categoryLabel(normalizeCategory(x.category)))}</small></div>`).join(''):`<p>${t('noHistory')}</p>`;$('#modal').hidden=false};
-$('#closeModal').onclick=()=>$('#modal').hidden=true;
-$('#theme').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem(THEME_KEY,document.body.classList.contains('dark')?'dark':'light')};
-$('#lock').onclick=()=>{if(pin){$('#app').hidden=true;$('#pin').hidden=false;pinUI()}};
+async function deleteItem(item) {
+  try {
+    await api(`/api/items/${item.id}`, { method: "DELETE" });
+    await loadItems();
+  } catch (error) {
+    alert(error.message || t("connectionError"));
+  }
+}
 
-if(localStorage.getItem(THEME_KEY)==='dark')document.body.classList.add('dark');
-document.documentElement.lang=translations[lang].htmlLang;
-applyTranslations();
-pinUI();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-setInterval(async()=>{if(!$('#app').hidden&&currentList){try{const fresh=await api(`/api/lists/${currentList}/items`);if(JSON.stringify(fresh)!==JSON.stringify(items)){items=fresh;render()}}catch{}}},5000);
+async function clearCompleted() {
+  const completed = state.items.filter(i => i.done);
+  for (const item of completed) {
+    await api(`/api/items/${item.id}`, { method: "DELETE" });
+  }
+  await loadItems();
+}
+
+function bindEvents() {
+  document.querySelectorAll("[data-digit]").forEach(button => {
+    button.addEventListener("click", () => addDigit(button.dataset.digit));
+  });
+
+  $("#deleteDigit").addEventListener("click", removeDigit);
+  $("#continuePin").addEventListener("click", submitPin);
+
+  $("#langEN").addEventListener("click", () => setLanguage("EN"));
+  $("#langPT").addEventListener("click", () => setLanguage("PT"));
+
+  $("#addItem").addEventListener("click", addItem);
+  $("#itemName").addEventListener("keydown", e => {
+    if (e.key === "Enter") addItem();
+  });
+
+  $("#sync").addEventListener("click", loadLists);
+  $("#clearCompleted").addEventListener("click", clearCompleted);
+
+  $("#logout").addEventListener("click", () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(PIN_KEY);
+    showPinScreen();
+  });
+}
+
+async function start() {
+  applyLanguage();
+  bindEvents();
+
+  const token = localStorage.getItem(TOKEN_KEY);
+
+  if (!token) {
+    showPinScreen();
+    return;
+  }
+
+  try {
+    $("#pinScreen").hidden = true;
+    $("#app").hidden = false;
+    await loadLists();
+  } catch {
+    localStorage.removeItem(TOKEN_KEY);
+    showPinScreen();
+  }
+}
+
+start();

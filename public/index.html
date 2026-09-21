@@ -1,69 +1,114 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#111111">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="icons/shoppar-64.png">
-<link rel="apple-touch-icon" href="icons/shoppar-180.png">
-<link rel="stylesheet" href="style.css">
-<title>Shoppar</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#171918">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Shoppar">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/shoppar-180.png">
+  <link rel="stylesheet" href="/style.css">
+  <title>Shoppar</title>
 </head>
 <body>
-<div id="pin" class="pin">
-  <div class="pin-card">
-    <div class="language-selector" aria-label="Language">
-      <button type="button" data-lang="en">EN</button>
-      <span>·</span>
-      <button type="button" data-lang="pt">PT</button>
-    </div>
-    <img src="icons/shoppar-180.png" class="pin-logo" alt="Shoppar">
-    <h1>Shoppar</h1>
-    <p id="pinText"></p>
-    <div class="dots"><i></i><i></i><i></i><i></i></div>
-    <div class="keys">
-      <button>1</button><button>2</button><button>3</button>
-      <button>4</button><button>5</button><button>6</button>
-      <button>7</button><button>8</button><button>9</button>
-      <span></span><button>0</button><button id="back">⌫</button>
-    </div>
-    <button id="continuePin" class="continue-pin" type="button" disabled>Continue</button>
-    <small id="pinError"></small>
-  </div>
-</div>
+  <main>
+    <section id="pinScreen" class="screen pin-screen">
+      <div class="brand">
+        <img src="/icons/shoppar-512.png" alt="Shoppar">
+        <h1>Shoppar</h1>
+        <p data-i18n="subtitle">Shared shopping list</p>
+      </div>
 
-<div id="app" hidden>
-<header>
-  <div class="brand"><img src="icons/shoppar-64.png" alt=""><div><div class="eyebrow">SHOPPAR</div><h1 id="appTitle"></h1></div></div>
-  <div class="header-actions">
-    <div class="language-selector compact" aria-label="Language">
-      <button type="button" data-lang="en">EN</button>
-      <span>·</span>
-      <button type="button" data-lang="pt">PT</button>
-    </div>
-    <button id="theme" aria-label="Toggle theme">☾</button><button id="lock" aria-label="Lock">⌑</button>
-  </div>
-</header>
-<nav id="lists"></nav>
-<main>
-<section class="stats">
-  <div><b id="remaining">0</b><span id="remainingLabel"></span></div>
-  <div><b id="cost">0,00 €</b><span id="costLabel"></span></div>
-</section>
-<section class="add">
-  <input id="name" maxlength="100">
-  <select id="category"></select>
-  <div class="row"><input id="price" inputmode="decimal"><input id="qty" inputmode="decimal" value="1"><button id="add" aria-label="Add item">+</button></div>
-</section>
-<div class="filters"><button class="active" data-filter="all"></button><button data-filter="pending"></button><button data-filter="done"></button></div>
-<ul id="items"></ul>
-<section class="actions"><button id="history"></button><button id="clear"></button></section>
-</main>
-<div id="modal" class="modal" hidden><div class="modal-card"><button id="closeModal" class="close" aria-label="Close">×</button><h2 id="historyTitle"></h2><div id="historyList"></div></div></div>
-</div>
-<script src="app.js"></script>
+      <div class="language">
+        <button id="langEN" class="lang active">EN</button>
+        <span>|</span>
+        <button id="langPT" class="lang">PT</button>
+      </div>
+
+      <h2 data-i18n="pinTitle">Enter your 4-digit PIN</h2>
+      <p class="hint" data-i18n="pinHint">Use the same PIN on both iPhones.</p>
+
+      <div class="pin-dots" aria-hidden="true">
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+      </div>
+
+      <div id="pinError" class="error" aria-live="polite"></div>
+
+      <div class="keypad">
+        <button data-digit="1">1</button>
+        <button data-digit="2">2</button>
+        <button data-digit="3">3</button>
+        <button data-digit="4">4</button>
+        <button data-digit="5">5</button>
+        <button data-digit="6">6</button>
+        <button data-digit="7">7</button>
+        <button data-digit="8">8</button>
+        <button data-digit="9">9</button>
+        <button class="empty-key" tabindex="-1"></button>
+        <button data-digit="0">0</button>
+        <button id="deleteDigit" class="delete-key">⌫</button>
+      </div>
+
+      <button id="continuePin" class="primary" disabled data-i18n="continue">Continue</button>
+    </section>
+
+    <section id="app" class="screen app-screen" hidden>
+      <header class="app-header">
+        <div class="header-brand">
+          <img src="/icons/shoppar-64.png" alt="">
+          <div>
+            <strong>Shoppar</strong>
+            <small data-i18n="subtitle">Shared shopping list</small>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="sync" title="Sync">↻</button>
+          <button id="logout" title="Change PIN">⋯</button>
+        </div>
+      </header>
+
+      <nav id="listTabs" class="list-tabs"></nav>
+
+      <section class="add-card">
+        <input id="itemName" autocomplete="off" data-i18n-placeholder="itemPlaceholder" placeholder="What do you need?">
+        <div class="add-row">
+          <input id="itemQty" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" aria-label="Quantity">
+          <input id="itemPrice" type="text" inputmode="decimal" placeholder="€" aria-label="Price">
+          <button id="addItem" class="primary small" data-i18n="add">Add</button>
+        </div>
+      </section>
+
+      <section class="list-card">
+        <div class="list-toolbar">
+          <span data-i18n="lists">Lists</span>
+          <button id="clearCompleted" class="text-button" data-i18n="clearDone">Clear completed</button>
+        </div>
+        <div id="items"></div>
+        <div class="total-row">
+          <span>Total</span>
+          <strong id="total">€0.00</strong>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/app.js" defer></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+    }
+  </script>
+  <script>
+    // Prevent accidental pinch/double-tap zoom on iPhone while keeping normal scrolling.
+    document.addEventListener("gesturestart", e => e.preventDefault(), { passive: false });
+    document.addEventListener("gesturechange", e => e.preventDefault(), { passive: false });
+    document.addEventListener("gestureend", e => e.preventDefault(), { passive: false });
+  </script>
 </body>
 </html>
