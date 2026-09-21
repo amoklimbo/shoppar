@@ -119,7 +119,6 @@ async function rawAccess(pin){
 async function api(path,options={},retried=false){
   const headers=new Headers(options.headers||{});
   headers.set("Content-Type","application/json");
-  headers.set("Cache-Control","no-store");
   const token=localStorage.getItem(TOKEN_KEY);
   if(token) headers.set("X-Household-Token",token);
   const r=await fetch(`${API}${path}`,{...options,headers,cache:"no-store"});
