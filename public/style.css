@@ -71,3 +71,55 @@ main{min-height:100svh}
   .keypad{grid-template-columns:repeat(3,70px)}
   .keypad button{height:55px}
 }
+
+
+/* V3: theme, language switcher and item editing */
+html[data-theme="dark"]{
+  --bg:#111312;
+  --card:#1b1e1c;
+  --text:#f2f3ef;
+  --muted:#a7ada8;
+  --line:#303532;
+  --dark:#f2f3ef;
+  --danger:#ef7777;
+}
+html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+html[data-theme="dark"] .keypad button,
+html[data-theme="dark"] .header-actions button,
+html[data-theme="dark"] .list-tab,
+html[data-theme="dark"] .add-card,
+html[data-theme="dark"] .list-card,
+html[data-theme="dark"] .modal{background:var(--card);color:var(--text)}
+html[data-theme="dark"] .primary{background:#f2f3ef;color:#111312}
+html[data-theme="dark"] .pin-dot{border-color:#6f7772}
+html[data-theme="dark"] .pin-dot.filled{background:#f2f3ef;border-color:#f2f3ef}
+html[data-theme="dark"] .list-tab.active{background:#f2f3ef;color:#111312;border-color:#f2f3ef}
+html[data-theme="dark"] #itemName,
+html[data-theme="dark"] .add-row input,
+html[data-theme="dark"] .modal input{color:var(--text);background:transparent}
+html[data-theme="dark"] .check{background:#1b1e1c;border-color:#6f7772}
+html[data-theme="dark"] .modal-backdrop{background:rgba(0,0,0,.72)}
+
+.app-language{display:flex;align-items:center;gap:3px;margin-right:2px}
+.app-language .lang{font-size:11px;padding:3px}
+.header-actions{display:flex;align-items:center;gap:5px}
+.item-actions{display:flex;align-items:center;gap:1px;flex:0 0 auto}
+.edit,.delete{border:0;background:none;color:#9da39e;font-size:20px;padding:5px 6px;border-radius:9px}
+.edit:active,.delete:active{background:var(--line)}
+.modal-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.35);padding:18px}
+.modal{width:min(100%,520px);background:#fff;border-radius:24px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-header h2{font-size:20px;margin:0}
+.modal-close{width:36px;height:36px;border:0;border-radius:10px;background:var(--line);color:var(--text);font-size:24px}
+.modal label{display:block;margin-bottom:12px;color:var(--muted);font-size:12px;font-weight:700}
+.modal label span{display:block;margin:0 0 5px}
+.modal input{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;outline:none;color:var(--text);background:transparent}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.modal-actions .primary{max-width:140px}
+.secondary{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:15px;padding:12px 18px;font-weight:700}
+@media(max-width:480px){
+  .app-language{margin-right:0}
+  .header-actions{gap:2px}
+  .modal-backdrop{padding:10px}
+}

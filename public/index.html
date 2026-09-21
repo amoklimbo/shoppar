@@ -68,6 +68,12 @@
         </div>
 
         <div class="header-actions">
+          <div class="app-language">
+            <button id="langENApp" class="lang" data-lang="EN">EN</button>
+            <span>|</span>
+            <button id="langPTApp" class="lang" data-lang="PT">PT</button>
+          </div>
+          <button id="themeToggle" title="Dark mode" aria-label="Dark mode">🌙</button>
           <button id="sync" title="Sync">↻</button>
           <button id="logout" title="Change PIN">⋯</button>
         </div>
@@ -96,6 +102,42 @@
         </div>
       </section>
     </section>
+
+    <div id="editModal" class="modal-backdrop" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+        <div class="modal-header">
+          <h2 id="editTitle" data-i18n="edit">Edit</h2>
+          <button id="editClose" class="modal-close" aria-label="Close">×</button>
+        </div>
+        <input id="editItemId" type="hidden">
+        <label>
+          <span data-i18n="itemName">Item</span>
+          <input id="editItemName" autocomplete="off">
+        </label>
+        <div class="modal-grid">
+          <label>
+            <span data-i18n="quantity">Qty</span>
+            <input id="editItemQty" type="number" min="0.1" step="0.1" inputmode="decimal">
+          </label>
+          <label>
+            <span data-i18n="unit">Unit</span>
+            <input id="editItemUnit">
+          </label>
+          <label>
+            <span data-i18n="price">Price</span>
+            <input id="editItemPrice" inputmode="decimal">
+          </label>
+          <label>
+            <span data-i18n="category">Category</span>
+            <input id="editItemCategory">
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button id="editCancel" class="secondary" data-i18n="cancel">Cancel</button>
+          <button id="editSave" class="primary" data-i18n="save">Save</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="/app.js" defer></script>

@@ -2,9 +2,11 @@ const API = "https://shoppar.amok-limbo.workers.dev";
 const TOKEN_KEY = "shoppar_token";
 const PIN_KEY = "shoppar_pin";
 const LANG_KEY = "shoppar_lang";
+const THEME_KEY = "shoppar_theme";
 
 const state = {
   lang: localStorage.getItem(LANG_KEY) || "EN",
+  theme: localStorage.getItem(THEME_KEY) || "light",
   lists: [],
   activeList: null,
   items: []
@@ -36,7 +38,15 @@ const translations = {
     category: "Category",
     other: "Other",
     logout: "Change PIN",
-    sync: "Sync"
+    sync: "Sync",
+    edit: "Edit",
+    save: "Save",
+    cancel: "Cancel",
+    itemName: "Item",
+    unit: "Unit",
+    deleteItem: "Delete item",
+    themeLight: "Light mode",
+    themeDark: "Dark mode"
   },
   PT: {
     appTitle: "Shoppar",
@@ -61,7 +71,15 @@ const translations = {
     category: "Categoria",
     other: "Outros",
     logout: "Alterar PIN",
-    sync: "Sincronizar"
+    sync: "Sincronizar",
+    edit: "Editar",
+    save: "Guardar",
+    cancel: "Cancelar",
+    itemName: "Artigo",
+    unit: "Unidade",
+    deleteItem: "Eliminar artigo",
+    themeLight: "Modo claro",
+    themeDark: "Modo escuro"
   }
 };
 
@@ -74,10 +92,31 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n]").forEach(el => {
     el.textContent = t(el.dataset.i18n);
   });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
   const input = $("#itemName");
   if (input) input.placeholder = t("itemPlaceholder");
-  $("#langEN")?.classList.toggle("active", state.lang === "EN");
-  $("#langPT")?.classList.toggle("active", state.lang === "PT");
+  document.querySelectorAll(".lang").forEach(el => {
+    el.classList.toggle("active", el.dataset.lang === state.lang);
+  });
+  if (typeof applyTheme === "function") applyTheme();
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
+  const button = $("#themeToggle");
+  if (button) {
+    button.textContent = state.theme === "dark" ? "☀️" : "🌙";
+    button.title = state.theme === "dark" ? t("themeLight") : t("themeDark");
+    button.setAttribute("aria-label", button.title);
+  }
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  localStorage.setItem(THEME_KEY, theme);
+  applyTheme();
 }
 
 function setLanguage(lang) {
@@ -225,6 +264,48 @@ function formatPrice(price) {
   }).format(value);
 }
 
+function openEdit(item) {
+  $("#editItemId").value = item.id;
+  $("#editItemName").value = item.name || "";
+  $("#editItemQty").value = item.quantity ?? 1;
+  $("#editItemUnit").value = item.unit || "un.";
+  $("#editItemPrice").value = item.price ?? "";
+  $("#editItemCategory").value = item.category || "Outros";
+  $("#editModal").hidden = false;
+  setTimeout(() => $("#editItemName").focus(), 50);
+}
+
+function closeEdit() {
+  $("#editModal").hidden = true;
+}
+
+async function saveEdit() {
+  const id = $("#editItemId").value;
+  const name = $("#editItemName").value.trim();
+  if (!id || !name) return;
+
+  const priceRaw = $("#editItemPrice").value.trim();
+  const price = priceRaw === "" ? null : Number(priceRaw.replace(",", "."));
+  const quantity = Number($("#editItemQty").value || 1);
+
+  try {
+    await api(`/api/items/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        name,
+        quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+        unit: $("#editItemUnit").value.trim() || "un.",
+        price: Number.isFinite(price) ? price : null,
+        category: $("#editItemCategory").value.trim() || "Outros"
+      })
+    });
+    closeEdit();
+    await loadItems();
+  } catch (error) {
+    alert(error.message || t("connectionError"));
+  }
+}
+
 function renderItems() {
   const container = $("#items");
   container.innerHTML = "";
@@ -260,13 +341,25 @@ function renderItems() {
 
     body.append(name, meta);
 
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+
+    const edit = document.createElement("button");
+    edit.className = "edit";
+    edit.textContent = "✎";
+    edit.setAttribute("aria-label", t("edit"));
+    edit.title = t("edit");
+    edit.addEventListener("click", () => openEdit(item));
+
     const del = document.createElement("button");
     del.className = "delete";
     del.textContent = "×";
-    del.setAttribute("aria-label", "Delete");
+    del.setAttribute("aria-label", t("deleteItem"));
+    del.title = t("deleteItem");
     del.addEventListener("click", () => deleteItem(item));
 
-    row.append(check, body, del);
+    actions.append(edit, del);
+    row.append(check, body, actions);
     container.appendChild(row);
   });
 
@@ -360,6 +453,14 @@ function bindEvents() {
   });
 
   $("#sync").addEventListener("click", loadLists);
+  $("#themeToggle")?.addEventListener("click", () =>
+    setTheme(state.theme === "dark" ? "light" : "dark")
+  );
+  $("#editClose")?.addEventListener("click", closeEdit);
+  $("#editCancel")?.addEventListener("click", closeEdit);
+  $("#editSave")?.addEventListener("click", saveEdit);
+  $("#langENApp")?.addEventListener("click", () => setLanguage("EN"));
+  $("#langPTApp")?.addEventListener("click", () => setLanguage("PT"));
   $("#clearCompleted").addEventListener("click", clearCompleted);
 
   $("#logout").addEventListener("click", () => {
@@ -371,6 +472,7 @@ function bindEvents() {
 
 async function start() {
   applyLanguage();
+  applyTheme();
   bindEvents();
 
   const token = localStorage.getItem(TOKEN_KEY);
