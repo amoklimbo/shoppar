@@ -76,7 +76,6 @@ function pinUI(){
 async function submitPin(){
   if(entered.length!==4)return;
   const enteredPin=entered;
-  try {
   try{
     let d;
     // First device creates the shared household; subsequent devices log in.
