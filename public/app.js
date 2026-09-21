@@ -3,10 +3,10 @@ const TOKEN_KEY='shoppar-token-v1', PIN_KEY='shoppar-pin-v1', THEME_KEY='shoppar
 
 const translations={
   en:{
-    htmlLang:'en', title:'Shopping', createPin:'Create a 4-digit PIN', enterPin:'Enter your 4-digit PIN', remaining:'to buy', estimated:'estimated total', addProduct:'Add product...', price:'Price €', qty:'Qty.', all:'All', pending:'To buy', done:'Purchased', history:'History', clear:'Clear purchased', noHistory:'No history yet.', groceries:'Groceries', home:'Home', supermarket:'Supermarket', produce:'Fruit & vegetables', hygiene:'Hygiene', house:'Home', drinks:'Drinks', other:'Other', unit:'unit', error:'Something went wrong.', invalidPin:'Please enter 4 digits.', invalidLogin:'Invalid PIN.', continuePin:'Continue'
+    htmlLang:'en', title:'Shopping', createPin:'Enter your 4-digit PIN', enterPin:'Enter your 4-digit PIN', remaining:'to buy', estimated:'estimated total', addProduct:'Add product...', price:'Price €', qty:'Qty.', all:'All', pending:'To buy', done:'Purchased', history:'History', clear:'Clear purchased', noHistory:'No history yet.', groceries:'Groceries', home:'Home', supermarket:'Supermarket', produce:'Fruit & vegetables', hygiene:'Hygiene', house:'Home', drinks:'Drinks', other:'Other', unit:'unit', error:'Something went wrong.', invalidPin:'Please enter 4 digits.', invalidLogin:'Invalid PIN.', continuePin:'Continue'
   },
   pt:{
-    htmlLang:'pt-PT', title:'Compras', createPin:'Cria um PIN de 4 dígitos', enterPin:'Introduz o PIN de 4 dígitos', remaining:'por comprar', estimated:'total estimado', addProduct:'Adicionar produto...', price:'Preço €', qty:'Qtd.', all:'Todos', pending:'Por comprar', done:'Comprados', history:'Histórico', clear:'Limpar comprados', noHistory:'Sem histórico.', groceries:'Supermercado', home:'Casa', supermarket:'Supermercado', produce:'Fruta e legumes', hygiene:'Higiene', house:'Casa', drinks:'Bebidas', other:'Outros', unit:'un.', error:'Ocorreu um erro.', invalidPin:'Introduz 4 dígitos.', invalidLogin:'PIN inválido.', continuePin:'Continuar'
+    htmlLang:'pt-PT', title:'Compras', createPin:'Introduz o PIN de 4 dígitos', enterPin:'Introduz o PIN de 4 dígitos', remaining:'por comprar', estimated:'total estimado', addProduct:'Adicionar produto...', price:'Preço €', qty:'Qtd.', all:'Todos', pending:'Por comprar', done:'Comprados', history:'Histórico', clear:'Limpar comprados', noHistory:'Sem histórico.', groceries:'Supermercado', home:'Casa', supermarket:'Supermercado', produce:'Fruta e legumes', hygiene:'Higiene', house:'Casa', drinks:'Bebidas', other:'Outros', unit:'un.', error:'Ocorreu um erro.', invalidPin:'Introduz 4 dígitos.', invalidLogin:'PIN inválido.', continuePin:'Continuar'
   }
 };
 
@@ -26,7 +26,7 @@ const api=async(path,opts={})=>{
   if(token)headers['x-household-token']=token;
   const r=await fetch(API_URL+path,{...opts,headers});
   const d=await r.json();
-  if(!r.ok)throw new Error(d.error||t('error'));
+  if(!r.ok){const err=new Error(d.error||t('error'));err.status=r.status;throw err;}
   return d;
 };
 
@@ -75,15 +75,35 @@ function pinUI(){
 
 async function submitPin(){
   if(entered.length!==4)return;
+  const enteredPin=entered;
+  if(enteredPin!=='0107'){
+    $('#pinError').textContent=t('invalidLogin');
+    entered='';
+    dots();
+    $('#continuePin').disabled=true;
+    return;
+  }
   try{
-    const d=await api(pin?'/api/login':'/api/setup',{method:'POST',body:JSON.stringify({pin:entered})});
-    token=d.token; pin=entered;
-    localStorage.setItem(TOKEN_KEY,token); localStorage.setItem(PIN_KEY,pin);
-    $('#pin').hidden=true; $('#app').hidden=false;
+    let d;
+    // First device creates the shared household; subsequent devices log in.
+    try{
+      d=await api('/api/login',{method:'POST',body:JSON.stringify({pin:enteredPin})});
+    }catch(e){
+      if(e.status!==404)throw e;
+      d=await api('/api/setup',{method:'POST',body:JSON.stringify({pin:enteredPin})});
+    }
+    token=d.token;
+    pin=enteredPin;
+    localStorage.setItem(TOKEN_KEY,token);
+    localStorage.setItem(PIN_KEY,pin);
+    $('#pin').hidden=true;
+    $('#app').hidden=false;
     await load();
   }catch(e){
-    $('#pinError').textContent=e.message||t('invalidLogin');
-    entered=''; dots();
+    $('#pinError').textContent=e.message||t('error');
+    entered='';
+    dots();
+    $('#continuePin').disabled=true;
   }
 }
 
