@@ -108,7 +108,7 @@ function toggleTheme(){
 async function rawAccess(pin){
   const r=await fetch(`${API}/api/access`,{
     method:"POST",
-    headers:{"Content-Type":"application/json","Cache-Control":"no-store"},
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({pin})
   });
   let data={}; try{data=await r.json()}catch{}
