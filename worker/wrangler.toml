@@ -5,4 +5,4 @@ compatibility_date = "2026-09-21"
 [[d1_databases]]
 binding = "DB"
 database_name = "shoopar-db"
-database_id = "COLOCA_AQUI_O_DATABASE_ID"
+database_id = "1801c022-1431-4316-b7e8-989ea57d5731"
