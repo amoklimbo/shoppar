@@ -41,7 +41,12 @@ export default {
 
         const pinHash = await sha256(String(pin));
         const existing = await env.DB.prepare('SELECT id FROM households WHERE pin_hash=?').bind(pinHash).first();
-        if (existing) return json({error:'Este PIN já está em utilização. Escolhe outro PIN.'},409);
+
+        // The 4-digit PIN is the shared household key. If this PIN already
+        // exists, treat setup as an access request and return the existing
+        // household token instead of reporting a duplicate PIN. This makes
+        // the first-device/new-device flow deterministic.
+        if (existing) return json({token: existing.id, existing: true});
 
         const householdId = uid();
         const created = now();
@@ -71,7 +76,7 @@ export default {
           'SELECT id FROM households WHERE pin_hash=?'
         ).bind(pinHash).first();
 
-        if (!row) return json({error:'PIN incorreto ou lista inexistente.'},401);
+        if (!row) return json({error:'Invalid PIN.'},401);
         return json({token:row.id});
       }
 
