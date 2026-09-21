@@ -1,5 +1,5 @@
-const API_URL='https://COLOCA_AQUI_O_WORKER_URL';
-const TOKEN_KEY='shoopar-token-v1', PIN_KEY='shoopar-pin-v1', THEME_KEY='shoopar-theme', LANG_KEY='shoopar-lang-v1';
+const API_URL='https://shoppar.amok-limbo.workers.dev';
+const TOKEN_KEY='shoppar-token-v1', PIN_KEY='shoppar-pin-v1', THEME_KEY='shoppar-theme', LANG_KEY='shoppar-lang-v1';
 
 const translations={
   en:{
