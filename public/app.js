@@ -105,13 +105,39 @@ function toggleTheme(){
   localStorage.setItem(THEME_KEY,state.theme); applyTheme();
 }
 
-async function api(path,options={}){
+async function rawAccess(pin){
+  const r=await fetch(`${API}/api/access`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Cache-Control":"no-store"},
+    body:JSON.stringify({pin})
+  });
+  let data={}; try{data=await r.json()}catch{}
+  if(!r.ok){const e=new Error(data.error||t("connectionError"));e.status=r.status;throw e;}
+  return data;
+}
+
+async function api(path,options={},retried=false){
   const headers=new Headers(options.headers||{});
   headers.set("Content-Type","application/json");
+  headers.set("Cache-Control","no-store");
   const token=localStorage.getItem(TOKEN_KEY);
   if(token) headers.set("X-Household-Token",token);
-  const r=await fetch(`${API}${path}`,{...options,headers});
+  const r=await fetch(`${API}${path}`,{...options,headers,cache:"no-store"});
   let data={}; try{data=await r.json()}catch{}
+
+  // If a device still has an old household token, re-bind it to the
+  // household identified by its saved PIN and retry the original request once.
+  if(r.status===401 && !retried && localStorage.getItem(PIN_KEY) && path!=="/api/access"){
+    try{
+      const pin=localStorage.getItem(PIN_KEY);
+      const access=await rawAccess(pin);
+      if(access?.token){
+        localStorage.setItem(TOKEN_KEY,access.token);
+        return api(path,options,true);
+      }
+    }catch{}
+  }
+
   if(!r.ok){const e=new Error(data.error||t("connectionError"));e.status=r.status;throw e;}
   return data;
 }
@@ -152,7 +178,7 @@ async function submitPin(){
   if(entered.length!==4)return;
   const pin=entered; $("#pinError").textContent=""; $("#continuePin").disabled=true;
   try{
-    const result=await api("/api/access",{method:"POST",body:JSON.stringify({pin})});
+    const result=await rawAccess(pin);
     localStorage.setItem(TOKEN_KEY,result.token); localStorage.setItem(PIN_KEY,pin);
     $("#pinScreen").hidden=true; $("#app").hidden=false; entered=""; updatePinDots();
     await loadLists();
@@ -163,7 +189,7 @@ async function submitPin(){
 async function refreshSessionFromPin(){
   const pin=localStorage.getItem(PIN_KEY);
   if(!/^\d{4}$/.test(pin||"")) return false;
-  const result=await api("/api/access",{method:"POST",body:JSON.stringify({pin})});
+  const result=await rawAccess(pin);
   if(!result?.token) return false;
   localStorage.setItem(TOKEN_KEY,result.token);
   return true;
@@ -360,7 +386,7 @@ function bind(){
     try{
       $("#sync").classList.add("syncing");
       await refreshSessionFromPin();
-      await loadLists(false);
+      await loadLists(true);
       await loadHistory();
       toast(t("syncDone"));
     }catch(e){ toast(t("syncError"),true); }
