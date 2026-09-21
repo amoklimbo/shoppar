@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/shoopar-64.png">
+<link rel="apple-touch-icon" href="icons/shoopar-180.png">
+<link rel="stylesheet" href="style.css">
+<title>Shoopar</title>
+</head>
+<body>
+<div id="pin" class="pin">
+  <div class="pin-card">
+    <img src="icons/shoopar-180.png" class="pin-logo" alt="Shoopar">
+    <h1>Shoopar</h1>
+    <p id="pinText">Cria um PIN de 4 dígitos</p>
+    <div class="dots"><i></i><i></i><i></i><i></i></div>
+    <div class="keys">
+      <button>1</button><button>2</button><button>3</button>
+      <button>4</button><button>5</button><button>6</button>
+      <button>7</button><button>8</button><button>9</button>
+      <span></span><button>0</button><button id="back">⌫</button>
+    </div>
+    <small id="pinError"></small>
+  </div>
+</div>
+
+<div id="app" hidden>
+<header>
+  <div class="brand"><img src="icons/shoopar-64.png" alt=""><div><div class="eyebrow">SHOPPAR</div><h1>Compras</h1></div></div>
+  <div class="header-actions"><button id="theme">☾</button><button id="lock">⌑</button></div>
+</header>
+<nav id="lists"></nav>
+<main>
+<section class="stats">
+  <div><b id="remaining">0</b><span>por comprar</span></div>
+  <div><b id="cost">0,00 €</b><span>total estimado</span></div>
+</section>
+<section class="add">
+  <input id="name" placeholder="Adicionar produto..." maxlength="100">
+  <select id="category">
+    <option>Supermercado</option><option>Fruta e legumes</option><option>Higiene</option>
+    <option>Casa</option><option>Bebidas</option><option>Outros</option>
+  </select>
+  <div class="row"><input id="price" inputmode="decimal" placeholder="Preço €"><input id="qty" inputmode="decimal" value="1" placeholder="Qtd."><button id="add">+</button></div>
+</section>
+<div class="filters"><button class="active" data-filter="all">Todos</button><button data-filter="pending">Por comprar</button><button data-filter="done">Comprados</button></div>
+<ul id="items"></ul>
+<section class="actions"><button id="history">Histórico</button><button id="clear">Limpar comprados</button></section>
+</main>
+<div id="modal" class="modal" hidden><div class="modal-card"><button id="closeModal" class="close">×</button><h2>Histórico</h2><div id="historyList"></div></div></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
