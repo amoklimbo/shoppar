@@ -23,37 +23,39 @@ const $$ = s => [...document.querySelectorAll(s)];
 const translations = {
   EN:{
     subtitle:"Shared shopping list", shared:"Shared household", pinTitle:"Enter your 4-digit PIN",
-    pinHint:"Use the same PIN on both iPhones.", continue:"Continue", invalidPin:"PIN must contain 4 digits.",
+    pinHint:"Use the same PIN on both devices.", continue:"Continue", invalidPin:"PIN must contain 4 digits.",
     connectionError:"Could not connect. Please try again.", shopping:"SHOPPING", myLists:"My lists",
     addItem:"Add product", addItemHint:"Add a product with quantity, price and category.",
-    itemPlaceholder:"What do you need?", add:"Add product", quantity:"Qty", unit:"Unit", price:"Price",
+    itemPlaceholder:"What do you need?", add:"Add product", quantity:"Quantity", unit:"Unit", price:"Price",
     total:"Total", clearDone:"Clear completed", empty:"Your list is empty.", emptyHint:"Add your first product above.",
     historyEyebrow:"ACTIVITY", history:"History", historyEmpty:"Nothing completed yet.",
     historyEmptyHint:"Completed products will appear here.", preferences:"PREFERENCES", settings:"Settings",
     language:"Language", languageHint:"Only this device changes.", appearance:"Appearance",
     appearanceHint:"Only this device changes.", sharedPin:"Shared PIN",
-    sharedPinHint:"The PIN connects both iPhones to the same household.", changePin:"Change PIN",
+    sharedPinHint:"The same PIN connects your devices to the same household.", changePin:"Change PIN",
     aboutText:"Shared shopping, made simple.", listsNav:"Lists", historyNav:"History", settingsNav:"Settings",
     editEyebrow:"PRODUCT", edit:"Edit product", save:"Save changes", cancel:"Cancel", itemName:"Product",
     category:"Category", deleteItem:"Delete product", light:"Light", dark:"Dark", noHistory:"No completed products.",
-    confirmDelete:"Delete this product?", syncDone:"Synced", saved:"Saved", added:"Added"
+    confirmDelete:"Delete this product?", syncDone:"Synced", syncing:"Syncing…", saved:"Saved", added:"Added",
+    syncError:"Sync failed. Please try again."
   },
   PT:{
     subtitle:"Lista de compras partilhada", shared:"Agregado familiar partilhado", pinTitle:"Introduz o PIN de 4 dígitos",
-    pinHint:"Usa o mesmo PIN nos dois iPhones.", continue:"Continuar", invalidPin:"O PIN tem de ter 4 dígitos.",
+    pinHint:"Usa o mesmo PIN nos dois dispositivos.", continue:"Continuar", invalidPin:"O PIN tem de ter 4 dígitos.",
     connectionError:"Não foi possível ligar. Tenta novamente.", shopping:"COMPRAS", myLists:"As minhas listas",
     addItem:"Adicionar produto", addItemHint:"Adiciona um produto com quantidade, preço e categoria.",
-    itemPlaceholder:"O que precisas?", add:"Adicionar produto", quantity:"Qtd.", unit:"Unidade", price:"Preço",
+    itemPlaceholder:"O que precisas?", add:"Adicionar produto", quantity:"Quantidade", unit:"Unidade", price:"Preço",
     total:"Total", clearDone:"Limpar concluídos", empty:"A lista está vazia.", emptyHint:"Adiciona o primeiro produto acima.",
     historyEyebrow:"ATIVIDADE", history:"Histórico", historyEmpty:"Ainda não há produtos concluídos.",
     historyEmptyHint:"Os produtos concluídos aparecem aqui.", preferences:"PREFERÊNCIAS", settings:"Definições",
     language:"Idioma", languageHint:"Só altera este dispositivo.", appearance:"Aparência",
     appearanceHint:"Só altera este dispositivo.", sharedPin:"PIN partilhado",
-    sharedPinHint:"O PIN liga os dois iPhones ao mesmo agregado familiar.", changePin:"Alterar PIN",
+    sharedPinHint:"O mesmo PIN liga os teus dispositivos ao mesmo agregado familiar.", changePin:"Alterar PIN",
     aboutText:"Compras partilhadas, de forma simples.", listsNav:"Listas", historyNav:"Histórico", settingsNav:"Definições",
     editEyebrow:"PRODUTO", edit:"Editar produto", save:"Guardar alterações", cancel:"Cancelar", itemName:"Produto",
     category:"Categoria", deleteItem:"Eliminar produto", light:"Claro", dark:"Escuro", noHistory:"Não há produtos concluídos.",
-    confirmDelete:"Eliminar este produto?", syncDone:"Sincronizado", saved:"Guardado", added:"Adicionado"
+    confirmDelete:"Eliminar este produto?", syncDone:"Sincronizado", syncing:"A sincronizar…", saved:"Guardado", added:"Adicionado",
+    syncError:"A sincronização falhou. Tenta novamente."
   }
 };
 
@@ -119,12 +121,16 @@ function lockApp() {
   $("#pinError").textContent = "";
 }
 
-function checkAppLock() {
+async function checkAppLock() {
   if (backgroundAt === null) return;
   const elapsed = Date.now() - backgroundAt;
   backgroundAt = null;
   if (elapsed >= LOCK_TIMEOUT && localStorage.getItem(TOKEN_KEY)) {
     lockApp();
+    return;
+  }
+  if (localStorage.getItem(TOKEN_KEY) && !$("#app").hidden) {
+    try { await loadLists(!!localStorage.getItem(PIN_KEY)); await loadHistory(); } catch {}
   }
 }
 
@@ -148,7 +154,16 @@ async function submitPin(){
 }
 
 // Data
-async function loadLists(){
+async function refreshSessionFromPin(){
+  const pin=localStorage.getItem(PIN_KEY);
+  if(!/^\d{4}$/.test(pin||"")) return false;
+  const result=await api("/api/access",{method:"POST",body:JSON.stringify({pin})});
+  if(result?.token) localStorage.setItem(TOKEN_KEY,result.token);
+  return true;
+}
+
+async function loadLists(reconnect=false){
+  if(reconnect) await refreshSessionFromPin();
   const data=await api("/api/lists"); state.lists=data.results||[];
   if(!state.activeList || !state.lists.some(x=>x.id===state.activeList.id)) state.activeList=state.lists[0]||null;
   renderLists(); await loadItems();
@@ -304,7 +319,15 @@ function bind(){
   $("#langENPin").onclick=()=>setLanguage("EN");$("#langPTPin").onclick=()=>setLanguage("PT");
   $("#langENApp").onclick=()=>setLanguage("EN");$("#langPTApp").onclick=()=>setLanguage("PT");
   $("#themeToggle").onclick=toggleTheme;$("#settingsTheme").onclick=toggleTheme;
-  $("#sync").onclick=async()=>{await loadLists();await loadHistory();toast(t("syncDone"));};
+  $("#sync").onclick=async()=>{
+    try{
+      $("#sync").classList.add("syncing");
+      await loadLists(true);
+      await loadHistory();
+      toast(t("syncDone"));
+    }catch(e){ toast(t("syncError"),true); }
+    finally{ $("#sync").classList.remove("syncing"); }
+  };
   $("#addItem").onclick=addItem;$("#itemName").onkeydown=e=>{if(e.key==="Enter")addItem();};
   $("#clearCompleted").onclick=clearCompleted;
   $("#editClose").onclick=closeEdit;$("#editCancel").onclick=closeEdit;$("#editSave").onclick=saveEdit;
@@ -328,7 +351,10 @@ async function start(){
   applyTheme();applyLanguage();bind();updatePinDots();
   const token=localStorage.getItem(TOKEN_KEY);
   if(!token){$("#pinScreen").hidden=false;$("#app").hidden=true;return;}
-  try{$("#pinScreen").hidden=true;$("#app").hidden=false;await loadLists();await loadHistory();}
-  catch(e){localStorage.removeItem(TOKEN_KEY);$("#pinScreen").hidden=false;$("#app").hidden=true;}
+  try{
+    $("#pinScreen").hidden=true;$("#app").hidden=false;
+    await loadLists(!!localStorage.getItem(PIN_KEY));
+    await loadHistory();
+  }catch(e){localStorage.removeItem(TOKEN_KEY);$("#pinScreen").hidden=false;$("#app").hidden=true;}
 }
 start();
