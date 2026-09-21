@@ -182,6 +182,24 @@
     </nav>
   </section>
 
+  <!-- CHANGE PIN -->
+  <div id="pinChangeModal" class="modal-backdrop" hidden>
+    <div class="modal pin-change-modal">
+      <div class="modal-header">
+        <div><span class="eyebrow" data-i18n="pinChangeEyebrow">SECURITY</span><h2 data-i18n="changePinTitle">Change PIN</h2></div>
+        <button id="pinChangeClose" class="modal-close">×</button>
+      </div>
+      <p class="modal-intro" data-i18n="changePinHint">Choose a new 4-digit PIN. It will remain connected to this shared household on all devices.</p>
+      <label><span data-i18n="newPin">New PIN</span><input id="newPin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label>
+      <label><span data-i18n="confirmPin">Confirm PIN</span><input id="confirmPin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label>
+      <div id="pinChangeError" class="error modal-error" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button id="pinChangeCancel" class="secondary" data-i18n="cancel">Cancel</button>
+        <button id="pinChangeSave" class="primary" data-i18n="savePin">Save PIN</button>
+      </div>
+    </div>
+  </div>
+
   <!-- EDIT -->
   <div id="editModal" class="modal-backdrop" hidden>
     <div class="modal">

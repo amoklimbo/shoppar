@@ -113,6 +113,39 @@ export default {
         return json({ ok: true, service: "shoppar" });
       }
 
+      // Change the PIN of the currently authenticated household.
+      // This updates the existing household instead of creating a new one.
+      if (path === "/api/change-pin" && req.method === "POST") {
+        const token = req.headers.get("x-household-token");
+        const hid = await household(req, env);
+        if (!hid) return json({ error: "Not authenticated." }, 401);
+
+        const data = await body(req);
+        const newPin = String(data?.new_pin ?? "");
+
+        if (!/^\d{4}$/.test(newPin)) {
+          return json({ error: "PIN must contain exactly 4 digits." }, 400);
+        }
+
+        const newHash = await sha256(newPin);
+
+        const collision = await env.DB
+          .prepare("SELECT id FROM households WHERE pin_hash = ? AND id != ?")
+          .bind(newHash, hid)
+          .first();
+
+        if (collision) {
+          return json({ error: "This PIN is already in use." }, 409);
+        }
+
+        await env.DB
+          .prepare("UPDATE households SET pin_hash = ? WHERE id = ?")
+          .bind(newHash, hid)
+          .run();
+
+        return json({ ok: true, token: hid });
+      }
+
       const hid = await household(req, env);
       if (!hid) {
         return json({ error: "Not authenticated." }, 401);

@@ -37,7 +37,10 @@ const translations = {
     editEyebrow:"PRODUCT", edit:"Edit product", save:"Save changes", cancel:"Cancel", itemName:"Product",
     category:"Category", deleteItem:"Delete product", light:"Light", dark:"Dark", noHistory:"No completed products.",
     confirmDelete:"Delete this product?", syncDone:"Synced", syncing:"Syncing…", saved:"Saved", added:"Added",
-    syncError:"Sync failed. Please try again."
+    syncError:"Sync failed. Please try again.", pinChangeEyebrow:"SECURITY", changePinTitle:"Change PIN",
+    changePinHint:"Choose a new 4-digit PIN. It will remain connected to this shared household on all devices.",
+    newPin:"New PIN", confirmPin:"Confirm PIN", savePin:"Save PIN", pinMismatch:"The PINs do not match.",
+    pinFormat:"The PIN must contain exactly 4 digits.", pinInUse:"This PIN is already in use."
   },
   PT:{
     subtitle:"Lista de compras partilhada", shared:"Agregado familiar partilhado", pinTitle:"Introduz o PIN de 4 dígitos",
@@ -55,7 +58,10 @@ const translations = {
     editEyebrow:"PRODUTO", edit:"Editar produto", save:"Guardar alterações", cancel:"Cancelar", itemName:"Produto",
     category:"Categoria", deleteItem:"Eliminar produto", light:"Claro", dark:"Escuro", noHistory:"Não há produtos concluídos.",
     confirmDelete:"Eliminar este produto?", syncDone:"Sincronizado", syncing:"A sincronizar…", saved:"Guardado", added:"Adicionado",
-    syncError:"A sincronização falhou. Tenta novamente."
+    syncError:"A sincronização falhou. Tenta novamente.", pinChangeEyebrow:"SEGURANÇA", changePinTitle:"Alterar PIN",
+    changePinHint:"Escolhe um novo PIN de 4 dígitos. O agregado familiar mantém-se ligado em todos os dispositivos.",
+    newPin:"Novo PIN", confirmPin:"Confirmar PIN", savePin:"Guardar PIN", pinMismatch:"Os PINs não coincidem.",
+    pinFormat:"O PIN tem de ter exatamente 4 dígitos.", pinInUse:"Este PIN já está a ser utilizado."
   }
 };
 
@@ -158,7 +164,8 @@ async function refreshSessionFromPin(){
   const pin=localStorage.getItem(PIN_KEY);
   if(!/^\d{4}$/.test(pin||"")) return false;
   const result=await api("/api/access",{method:"POST",body:JSON.stringify({pin})});
-  if(result?.token) localStorage.setItem(TOKEN_KEY,result.token);
+  if(!result?.token) return false;
+  localStorage.setItem(TOKEN_KEY,result.token);
   return true;
 }
 
@@ -313,6 +320,36 @@ function toast(msg,error=false){
   clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove("show"),1800);
 }
 
+function openPinChange(){
+  $("#newPin").value="";
+  $("#confirmPin").value="";
+  $("#pinChangeError").textContent="";
+  $("#pinChangeModal").hidden=false;
+  setTimeout(()=>$("#newPin").focus(),80);
+}
+function closePinChange(){
+  $("#pinChangeModal").hidden=true;
+}
+async function savePinChange(){
+  const p1=$("#newPin").value.trim();
+  const p2=$("#confirmPin").value.trim();
+  $("#pinChangeError").textContent="";
+  if(!/^\d{4}$/.test(p1)||!/^\d{4}$/.test(p2)){
+    $("#pinChangeError").textContent=t("pinFormat"); return;
+  }
+  if(p1!==p2){
+    $("#pinChangeError").textContent=t("pinMismatch"); return;
+  }
+  try{
+    await api("/api/change-pin",{method:"POST",body:JSON.stringify({new_pin:p1})});
+    localStorage.setItem(PIN_KEY,p1);
+    closePinChange();
+    toast(t("saved"));
+  }catch(e){
+    $("#pinChangeError").textContent=e.status===409?t("pinInUse"):(e.message||t("connectionError"));
+  }
+}
+
 function bind(){
   $$("[data-digit]").forEach(b=>b.onclick=()=>addDigit(b.dataset.digit));
   $("#deleteDigit").onclick=removeDigit;$("#continuePin").onclick=submitPin;
@@ -322,7 +359,8 @@ function bind(){
   $("#sync").onclick=async()=>{
     try{
       $("#sync").classList.add("syncing");
-      await loadLists(true);
+      await refreshSessionFromPin();
+      await loadLists(false);
       await loadHistory();
       toast(t("syncDone"));
     }catch(e){ toast(t("syncError"),true); }
@@ -334,7 +372,12 @@ function bind(){
   $$("[data-category]").forEach(b=>b.onclick=()=>{state.activeCategory=b.dataset.category;updateCategoryButtons();});
   $$("[data-edit-category]").forEach(b=>b.onclick=()=>{state.editCategory=b.dataset.editCategory;updateCategoryButtons();});
   $$(".nav-item").forEach(b=>b.onclick=()=>showView(b.dataset.view));
-  $("#changePin").onclick=()=>{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(PIN_KEY);$("#app").hidden=true;$("#pinScreen").hidden=false;showView("listsView");};
+  $("#changePin").onclick=openPinChange;
+  $("#pinChangeClose").onclick=closePinChange;
+  $("#pinChangeCancel").onclick=closePinChange;
+  $("#pinChangeSave").onclick=savePinChange;
+  $("#newPin").oninput=()=>$("#newPin").value=$("#newPin").value.replace(/\D/g,"").slice(0,4);
+  $("#confirmPin").oninput=()=>$("#confirmPin").value=$("#confirmPin").value.replace(/\D/g,"").slice(0,4);
 }
 
 document.addEventListener("visibilitychange", () => {
@@ -353,7 +396,8 @@ async function start(){
   if(!token){$("#pinScreen").hidden=false;$("#app").hidden=true;return;}
   try{
     $("#pinScreen").hidden=true;$("#app").hidden=false;
-    await loadLists(!!localStorage.getItem(PIN_KEY));
+    if(localStorage.getItem(PIN_KEY)) await refreshSessionFromPin();
+    await loadLists(false);
     await loadHistory();
   }catch(e){localStorage.removeItem(TOKEN_KEY);$("#pinScreen").hidden=false;$("#app").hidden=true;}
 }
