@@ -76,13 +76,7 @@ function pinUI(){
 async function submitPin(){
   if(entered.length!==4)return;
   const enteredPin=entered;
-  if(enteredPin!=='0107'){
-    $('#pinError').textContent=t('invalidLogin');
-    entered='';
-    dots();
-    $('#continuePin').disabled=true;
-    return;
-  }
+  try {
   try{
     let d;
     // First device creates the shared household; subsequent devices log in.
