@@ -55,7 +55,26 @@ async function loadItems(){if(!state.activeList){state.items=[];renderItems();re
 async function loadHistory(){if(!state.activeList){state.history=[];renderHistory();return}const d=await api(`/api/lists/${state.activeList.id}/history`);state.history=d.results||[];renderHistory()}
 async function loadRecipes(){const d=await api('/api/recipes');state.recipes=d.results||[];renderRecipes()}
 
-function renderLists(){const c=$('#listTabs');c.innerHTML='';state.lists.forEach(list=>{const b=document.createElement('button');b.className=`list-tab ${state.activeList?.id===list.id?'active':''}`;b.innerHTML=`<span>${list.name==='Supermercado'?'🛒':list.name==='Casa'?'⌂':'☷'}</span>${list.name==='Supermercado'?(state.lang==='PT'?'Supermercado':'Supermarket'):escapeHtml(list.name)}`;b.onclick=async()=>{state.activeList=list;renderLists();await loadItems()};c.appendChild(b)})}
+function renderLists(){
+  const c=$('#listTabs');
+  if(!c)return;
+  c.replaceChildren();
+  const lists=Array.isArray(state.lists)?state.lists:[];
+  lists.forEach(list=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className=`list-tab ${state.activeList?.id===list.id?'active':''}`;
+    const icon=list.name==='Supermercado'?'🛒':list.name==='Casa'?'⌂':'☷';
+    const label=list.name==='Supermercado'?(state.lang==='PT'?'Supermercado':'Supermarket'):list.name;
+    const iconEl=document.createElement('span');
+    iconEl.textContent=icon;
+    const textEl=document.createElement('span');
+    textEl.textContent=label;
+    b.append(iconEl,textEl);
+    b.addEventListener('click',async()=>{state.activeList=list;renderLists();await loadItems();updateStoreVisibility()});
+    c.appendChild(b);
+  });
+}
 function formatPrice(p){if(p===null||p===undefined||p==='')return '';const n=Number(p);if(!Number.isFinite(n))return '';return new Intl.NumberFormat(state.lang==='PT'?'pt-PT':'en-GB',{style:'currency',currency:'EUR'}).format(n)}
 function renderItems(){if(!$('#items'))return;const c=$('#items');c.innerHTML='';$('#emptyState').hidden=state.items.length>0;state.items.forEach(item=>{const row=document.createElement('article');row.className=`item ${item.done?'done':''}`;const check=document.createElement('button');check.className='check';check.textContent=item.done?'✓':'';check.onclick=()=>toggleItem(item);const body=document.createElement('div');body.className='item-body';const name=document.createElement('strong');name.className='item-name';name.textContent=item.name;const meta=document.createElement('div');meta.className='item-meta';const parts=[catLabel(item.category),`${item.quantity} ${item.unit}`];if(formatPrice(item.price))parts.push(formatPrice(item.price));if(item.store&&state.activeList?.name==='Casa')parts.push(`⌖ ${item.store}`);meta.textContent=parts.join(' · ');body.append(name,meta);const actions=document.createElement('div');actions.className='item-actions';const edit=document.createElement('button');edit.className='row-action';edit.textContent='✎';edit.title=t('edit');edit.onclick=()=>openEdit(item);const del=document.createElement('button');del.className='row-action danger';del.textContent='×';del.title=t('deleteItem');del.onclick=()=>deleteItem(item);actions.append(edit,del);row.append(check,body,actions);c.appendChild(row)});updateTotal()}
 function updateTotal(){const total=state.items.filter(i=>!i.done).reduce((s,i)=>s+(Number(i.price)||0)*(Number(i.quantity)||1),0);$('#total').textContent=formatPrice(total)||formatPrice(0)}
