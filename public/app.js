@@ -1,5 +1,5 @@
 const API = "https://shoppar.amok-limbo.workers.dev";
-const APP_VERSION = "2.8";
+const APP_VERSION = "2.6";
 const TOKEN_KEY = "shoppar_token";
 const PIN_KEY = "shoppar_pin";
 const LANG_KEY = "shoppar_lang";
@@ -13,7 +13,7 @@ let searchTimer = null;
 
 const state = {
   lang: localStorage.getItem(LANG_KEY) || "EN",
-  theme: localStorage.getItem(THEME_KEY) || "light",
+  theme: localStorage.getItem(THEME_KEY) || "dark",
   lists: [], activeList: null, items: [], history: [], recipes: [],
   activeCategory: "Outros", editCategory: "Outros", editingRecipeId: null
 };
