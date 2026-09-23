@@ -1,5 +1,5 @@
 const API = "https://shoppar.amok-limbo.workers.dev";
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.6";
 const TOKEN_KEY = "shoppar_token";
 const PIN_KEY = "shoppar_pin";
 const LANG_KEY = "shoppar_lang";
@@ -20,6 +20,12 @@ const state = {
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
+const escapeHtml = value => String(value ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/\'/g, "&#039;");
 
 const translations = {
   EN:{subtitle:"Shared shopping list",shared:"Shared household",pinTitle:"Enter your 4-digit PIN",pinHint:"Use the same PIN on both devices.",continue:"Continue",invalidPin:"The PIN must contain 4 digits.",connectionError:"Could not connect. Please try again.",shopping:"SHOPPING",myLists:"My lists",addItem:"Add product",addItemHint:"Add a product with quantity, price and category.",itemPlaceholder:"What do you need?",add:"Add product",quantity:"Quantity",unit:"Unit",price:"Price",store:"Store",storePlaceholder:"Where do you buy it?",total:"Total",clearDone:"Clear completed",empty:"Your list is empty.",emptyHint:"Add your first product above.",historyEyebrow:"ACTIVITY",history:"History",historyEmpty:"Nothing completed yet.",historyEmptyHint:"Completed products will appear here.",preferences:"PREFERENCES",settings:"Settings",language:"Language",languageHint:"Only this device changes.",appearance:"Appearance",appearanceHint:"Only this device changes.",sharedPin:"Shared PIN",sharedPinHint:"The same PIN connects your devices to the same household.",changePin:"Change PIN",aboutText:"Shared shopping, made simple.",listsNav:"Lists",historyNav:"History",settingsNav:"Settings",recipesNav:"Recipes",editEyebrow:"PRODUCT",edit:"Edit product",save:"Save changes",cancel:"Cancel",itemName:"Product",category:"Category",deleteItem:"Delete product",light:"Light",dark:"Dark",noHistory:"No completed products.",confirmDelete:"Delete this product?",syncDone:"Synced",syncing:"Syncing…",saved:"Saved",added:"Added",syncError:"Sync failed. Please try again.",pinChangeEyebrow:"SECURITY",changePinTitle:"Change PIN",changePinHint:"Choose a new 4-digit PIN. It stays connected to this shared household on all devices.",newPin:"New PIN",confirmPin:"Confirm PIN",savePin:"Save PIN",pinMismatch:"The PINs do not match.",pinFormat:"The PIN must contain exactly 4 digits.",pinInUse:"This PIN is already in use.",recipesEyebrow:"RECIPES",recipes:"Dishes & recipes",newRecipe:"New recipe",recipesEmpty:"No recipes yet.",recipesEmptyHint:"Create a recipe and keep its ingredients here.",recipeEyebrow:"RECIPE",recipeName:"Recipe name",ingredients:"Ingredients",ingredientsPlaceholder:"One ingredient per line",recipeNotes:"Notes",notesPlaceholder:"Preparation or notes",addToList:"Add ingredients to list",editRecipe:"Edit recipe",deleteRecipe:"Delete recipe",recipeSaved:"Recipe saved",recipeDeleted:"Recipe deleted",recipeAdded:"Ingredients added",recipeError:"Could not save recipe.",searchEyebrow:"SEARCH",search:"Search",searchPlaceholder:"Search products, history or recipes…",searchNothing:"No results.",searchProduct:"Product",searchRecipe:"Recipe",searchHistory:"History",searchIn:"in",homeStoreHint:"Where to buy it"},
