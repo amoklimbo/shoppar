@@ -60,6 +60,7 @@
         </div>
       </div>
       <div class="topbar-actions">
+        <button id="searchToggle" class="icon-button search-button" aria-label="Search">⌕</button>
         <button id="themeToggle" class="icon-button" aria-label="Theme">☀️</button>
         <button id="sync" class="icon-button" aria-label="Sync">↻</button>
       </div>
@@ -104,6 +105,7 @@
           <label><span data-i18n="quantity">Qty</span><input id="itemQty" type="number" min="0.1" step="0.1" value="1" inputmode="decimal"></label>
           <label><span data-i18n="unit">Unit</span><input id="itemUnit" value="un."></label>
           <label><span data-i18n="price">Price</span><input id="itemPrice" inputmode="decimal" placeholder="€"></label>
+          <label id="storeField" class="store-field"><span data-i18n="store">Store</span><input id="itemStore" data-i18n-placeholder="storePlaceholder" placeholder="Where?"></label>
           <button id="addItem" class="primary add-button" data-i18n="add">Add item</button>
         </div>
       </section>
@@ -120,6 +122,23 @@
           <strong id="total">€0,00</strong>
         </div>
       </section>
+    </section>
+
+    <!-- RECIPES VIEW -->
+    <section id="recipesView" class="view" hidden>
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow" data-i18n="recipesEyebrow">RECIPES</span>
+          <h2 data-i18n="recipes">Dishes & recipes</h2>
+        </div>
+        <button id="addRecipe" class="small-action" data-i18n="newRecipe">New recipe</button>
+      </div>
+      <div id="recipesList" class="recipe-list"></div>
+      <div id="recipesEmpty" class="empty-state" hidden>
+        <div class="empty-icon">🍽️</div>
+        <strong data-i18n="recipesEmpty">No recipes yet.</strong>
+        <span data-i18n="recipesEmptyHint">Create a recipe and keep its ingredients here.</span>
+      </div>
     </section>
 
     <!-- HISTORY VIEW -->
@@ -177,6 +196,7 @@
 
     <nav class="bottom-nav">
       <button class="nav-item active" data-view="listsView"><span>☷</span><b data-i18n="listsNav">Lists</b></button>
+      <button class="nav-item" data-view="recipesView"><span>⌁</span><b data-i18n="recipesNav">Recipes</b></button>
       <button class="nav-item" data-view="historyView"><span>◷</span><b data-i18n="historyNav">History</b></button>
       <button class="nav-item" data-view="settingsView"><span>⚙</span><b data-i18n="settingsNav">Settings</b></button>
     </nav>
@@ -222,6 +242,7 @@
         <label><span data-i18n="unit">Unit</span><input id="editItemUnit"></label>
         <label><span data-i18n="price">Price</span><input id="editItemPrice" inputmode="decimal"></label>
         <label><span data-i18n="category">Category</span><input id="editItemCategory"></label>
+        <label id="editStoreField"><span data-i18n="store">Store</span><input id="editItemStore" data-i18n-placeholder="storePlaceholder" placeholder="Where?"></label>
       </div>
       <div class="modal-actions">
         <button id="editCancel" class="secondary" data-i18n="cancel">Cancel</button>
@@ -229,6 +250,36 @@
       </div>
     </div>
   </div>
+  <!-- RECIPE MODAL -->
+  <div id="recipeModal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <div><span class="eyebrow" data-i18n="recipeEyebrow">RECIPE</span><h2 data-i18n="newRecipe">New recipe</h2></div>
+        <button id="recipeClose" class="modal-close">×</button>
+      </div>
+      <label><span data-i18n="recipeName">Recipe name</span><input id="recipeName"></label>
+      <label><span data-i18n="ingredients">Ingredients</span><textarea id="recipeIngredients" rows="7" data-i18n-placeholder="ingredientsPlaceholder" placeholder="One ingredient per line"></textarea></label>
+      <label><span data-i18n="recipeNotes">Notes</span><textarea id="recipeNotes" rows="4" data-i18n-placeholder="notesPlaceholder" placeholder="Preparation or notes"></textarea></label>
+      <div id="recipeError" class="error modal-error"></div>
+      <div class="modal-actions">
+        <button id="recipeCancel" class="secondary" data-i18n="cancel">Cancel</button>
+        <button id="recipeSave" class="primary" data-i18n="save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="searchModal" class="modal-backdrop" hidden>
+    <div class="modal search-modal">
+      <div class="modal-header">
+        <div><span class="eyebrow" data-i18n="searchEyebrow">SEARCH</span><h2 data-i18n="search">Search</h2></div>
+        <button id="searchClose" class="modal-close">×</button>
+      </div>
+      <input id="searchInput" class="search-input" data-i18n-placeholder="searchPlaceholder" placeholder="Search products, history or recipes…" autocomplete="off">
+      <div id="searchResults" class="search-results"></div>
+    </div>
+  </div>
+
 </main>
 
 <script src="/app.js" defer></script>
