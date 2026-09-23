@@ -4,6 +4,7 @@ const PIN_KEY = "shoppar_pin";
 const LANG_KEY = "shoppar_lang";
 const THEME_KEY = "shoppar_theme";
 const LOCK_TIMEOUT = 30 * 1000;
+const LAST_HIDDEN_KEY = "shoppar_last_hidden_at";
 let backgroundAt = null;
 let entered = "";
 let searchTimer = null;
@@ -42,12 +43,40 @@ function toggleTheme(){state.theme=state.theme==='dark'?'light':'dark';localStor
 async function rawAccess(pin){const r=await fetch(`${API}/api/access`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin}),cache:'no-store'});let d={};try{d=await r.json()}catch{}if(!r.ok){const e=new Error(d.error||t('connectionError'));e.status=r.status;throw e}return d}
 async function api(path,options={},retried=false){const headers=new Headers(options.headers||{});headers.set('Content-Type','application/json');const token=localStorage.getItem(TOKEN_KEY);if(token)headers.set('X-Household-Token',token);const r=await fetch(`${API}${path}`,{...options,headers,cache:'no-store'});let d={};try{d=await r.json()}catch{}if(r.status===401&&!retried&&localStorage.getItem(PIN_KEY)&&path!=='/api/access'){try{const a=await rawAccess(localStorage.getItem(PIN_KEY));if(a?.token){localStorage.setItem(TOKEN_KEY,a.token);return api(path,options,true)}}catch{}}if(!r.ok){const e=new Error(d.error||t('connectionError'));e.status=r.status;throw e}return d}
 
-function lockApp(){$('#app').hidden=true;$('#pinScreen').hidden=false;entered='';updatePinDots();$('#pinError').textContent=''}
-async function checkAppLock(){if(backgroundAt===null)return;const elapsed=Date.now()-backgroundAt;backgroundAt=null;if(elapsed>=LOCK_TIMEOUT&&localStorage.getItem(TOKEN_KEY)){lockApp();return}if(localStorage.getItem(TOKEN_KEY)&&!$('#app').hidden){try{await loadLists(true)}catch{}}}
+function lockApp(){
+  localStorage.removeItem(LAST_HIDDEN_KEY);
+  $('#app').hidden=true;
+  $('#pinScreen').hidden=false;
+  entered='';
+  updatePinDots();
+  $('#pinError').textContent='';
+}
+function rememberBackground(){
+  if(localStorage.getItem(TOKEN_KEY)&&!$('#app').hidden){
+    const now=Date.now();
+    backgroundAt=now;
+    localStorage.setItem(LAST_HIDDEN_KEY,String(now));
+  }
+}
+async function checkAppLock(){
+  const stored=Number(localStorage.getItem(LAST_HIDDEN_KEY)||0);
+  const startedAt=backgroundAt ?? (stored || null);
+  if(!startedAt)return;
+  const elapsed=Date.now()-startedAt;
+  backgroundAt=null;
+  localStorage.removeItem(LAST_HIDDEN_KEY);
+  if(elapsed>=LOCK_TIMEOUT&&localStorage.getItem(TOKEN_KEY)){
+    lockApp();
+    return;
+  }
+  if(localStorage.getItem(TOKEN_KEY)&&!$('#app').hidden){
+    try{await loadLists(true)}catch{}
+  }
+}
 function updatePinDots(){$$('.pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<entered.length));$('#continuePin').disabled=entered.length!==4}
 function addDigit(d){if(entered.length<4){entered+=d;updatePinDots()}}
 function removeDigit(){entered=entered.slice(0,-1);updatePinDots()}
-async function submitPin(){if(entered.length!==4)return;const pin=entered;$('#pinError').textContent='';$('#continuePin').disabled=true;try{const r=await rawAccess(pin);localStorage.setItem(TOKEN_KEY,r.token);localStorage.setItem(PIN_KEY,pin);$('#pinScreen').hidden=true;$('#app').hidden=false;entered='';updatePinDots();await loadLists()}catch(e){$('#pinError').textContent=e.message||t('connectionError');entered='';updatePinDots()}}
+async function submitPin(){if(entered.length!==4)return;const pin=entered;$('#pinError').textContent='';$('#continuePin').disabled=true;try{const r=await rawAccess(pin);localStorage.setItem(TOKEN_KEY,r.token);localStorage.setItem(PIN_KEY,pin);localStorage.removeItem(LAST_HIDDEN_KEY);$('#pinScreen').hidden=true;$('#app').hidden=false;entered='';updatePinDots();await loadLists()}catch(e){$('#pinError').textContent=e.message||t('connectionError');entered='';updatePinDots()}}
 async function refreshSessionFromPin(){const pin=localStorage.getItem(PIN_KEY);if(!/^\d{4}$/.test(pin||''))return false;const r=await rawAccess(pin);if(!r?.token)return false;localStorage.setItem(TOKEN_KEY,r.token);return true}
 
 async function loadLists(reconnect=false){if(reconnect)await refreshSessionFromPin();const d=await api('/api/lists');state.lists=d.results||[];if(!state.activeList||!state.lists.some(x=>x.id===state.activeList.id))state.activeList=state.lists[0]||null;renderLists();await loadItems()}
@@ -126,6 +155,35 @@ function bind(){
   $('#searchToggle').onclick=openSearch;$('#searchClose').onclick=closeSearch;$('#searchInput').oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,180)};
 }
 
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(localStorage.getItem(TOKEN_KEY))backgroundAt=Date.now();return}checkAppLock()});window.addEventListener('pageshow',checkAppLock);
-async function start(){applyTheme();applyLanguage();bind();updatePinDots();const token=localStorage.getItem(TOKEN_KEY);if(!token){$('#pinScreen').hidden=false;$('#app').hidden=true;return}try{$('#pinScreen').hidden=true;$('#app').hidden=false;if(localStorage.getItem(PIN_KEY))await refreshSessionFromPin();await loadLists(false)}catch(e){localStorage.removeItem(TOKEN_KEY);$('#pinScreen').hidden=false;$('#app').hidden=true}}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){rememberBackground();return;}
+  checkAppLock();
+});
+window.addEventListener('pagehide',rememberBackground);
+window.addEventListener('pageshow',checkAppLock);
+async function start(){
+  applyTheme();
+  applyLanguage();
+  bind();
+  updatePinDots();
+  const token=localStorage.getItem(TOKEN_KEY);
+  if(!token){$('#pinScreen').hidden=false;$('#app').hidden=true;return;}
+  const stored=Number(localStorage.getItem(LAST_HIDDEN_KEY)||0);
+  if(stored && Date.now()-stored>=LOCK_TIMEOUT){
+    lockApp();
+    return;
+  }
+  localStorage.removeItem(LAST_HIDDEN_KEY);
+  try{
+    $('#pinScreen').hidden=true;
+    $('#app').hidden=false;
+    if(localStorage.getItem(PIN_KEY))await refreshSessionFromPin();
+    await loadLists(false);
+  }catch(e){
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(LAST_HIDDEN_KEY);
+    $('#pinScreen').hidden=false;
+    $('#app').hidden=true;
+  }
+}
 start();
