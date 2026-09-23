@@ -1,5 +1,5 @@
 const API = "https://shoppar.amok-limbo.workers.dev";
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.8";
 const TOKEN_KEY = "shoppar_token";
 const PIN_KEY = "shoppar_pin";
 const LANG_KEY = "shoppar_lang";

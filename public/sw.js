@@ -1,4 +1,4 @@
-const CACHE = "shoppar-v2-7";
+const CACHE = "shoppar-v2-8";
 const APP_SHELL = ["/", "/index.html", "/style.css", "/app.js", "/manifest.webmanifest", "/icons/shoppar-64.png", "/icons/shoppar-180.png", "/icons/shoppar-192.png", "/icons/shoppar-512.png"];
 
 self.addEventListener("install", event => {
