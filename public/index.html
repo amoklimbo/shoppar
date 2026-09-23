@@ -21,7 +21,7 @@
       <img src="/icons/shoppar-512.png" alt="Shoppar">
       <h1>Shoppar</h1>
       <p data-i18n="subtitle">Shared shopping list</p>
-      <span class="app-version">v2.7</span>
+      <span class="app-version">v2.9</span>
     </div>
 
     <div class="pin-language">
@@ -114,7 +114,7 @@
       <section class="list-panel">
         <div id="items"></div>
         <div id="emptyState" class="empty-state" hidden>
-          <div class="empty-icon line-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 10h5l4 22h21l5-15H15"/><circle cx="20" cy="39" r="2"/><circle cx="36" cy="39" r="2"/></svg></div>
+          <div class="empty-icon">🛒</div>
           <strong data-i18n="empty">Your list is empty.</strong>
           <span data-i18n="emptyHint">Add your first item above.</span>
         </div>
@@ -136,7 +136,7 @@
       </div>
       <div id="recipesList" class="recipe-list"></div>
       <div id="recipesEmpty" class="empty-state" hidden>
-        <div class="empty-icon line-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M13 8v13M9 8v8a4 4 0 0 0 8 0V8M13 21v19"/><path d="M31 8v32M31 8c6 4 7 10 0 14"/></svg></div>
+        <div class="empty-icon">🍽️</div>
         <strong data-i18n="recipesEmpty">No recipes yet.</strong>
         <span data-i18n="recipesEmptyHint">Create a recipe and keep its ingredients here.</span>
       </div>
@@ -192,17 +192,35 @@
         <div class="about-logo"><img src="/icons/shoppar-180.png" alt=""></div>
         <strong>Shoppar</strong>
         <span data-i18n="aboutText">Shared shopping, kept simple.</span>
-        <small class="app-version-inside">v2.7</small>
+        <small class="app-version-inside">v2.9</small>
       </section>
     </section>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-view="listsView"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 5h13M7 12h13M7 19h13"/><circle cx="3.5" cy="5" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="19" r="1"/></svg></span><b data-i18n="listsNav">Lists</b></button>
-      <button class="nav-item" data-view="recipesView"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4h9a4 4 0 0 1 4 4v12H10a4 4 0 0 0-4 4V4Z"/><path d="M6 20h9a4 4 0 0 1 4 4"/></svg></span><b data-i18n="recipesNav">Recipes</b></button>
-      <button class="nav-item" data-view="historyView"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg></span><b data-i18n="historyNav">History</b></button>
-      <button class="nav-item" data-view="settingsView"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .7 1.7-1.9 1.9-1.7-.7-1.4.8-.4 1.8h-2.7l-.4-1.8-1.4-.8-1.7.7-1.9-1.9.7-1.7-.8-1.4-1.8-.4v-2.7l1.8-.4.8-1.4-.7-1.7 1.9-1.9 1.7.7 1.4-.8.4-1.8h2.7l.4 1.8 1.4.8 1.7-.7 1.9 1.9-.7 1.7.8 1.4 1.8.4v2.7l-1.8.4Z"/></svg></span><b data-i18n="settingsNav">Settings</b></button>
+      <button class="nav-item active" data-view="listsView"><span>☷</span><b data-i18n="listsNav">Lists</b></button>
+      <button class="nav-item" data-view="recipesView"><span>♨</span><b data-i18n="recipesNav">Recipes</b></button>
+      <button class="nav-item" data-view="historyView"><span>◷</span><b data-i18n="historyNav">History</b></button>
+      <button class="nav-item" data-view="settingsView"><span>⚙</span><b data-i18n="settingsNav">Settings</b></button>
     </nav>
   </section>
+
+  <!-- ADD RECIPE INGREDIENTS -->
+  <div id="recipeAddModal" class="modal-backdrop" hidden>
+    <div class="modal recipe-add-modal">
+      <div class="modal-header">
+        <div><span class="eyebrow" data-i18n="recipeEyebrow">RECIPE</span><h2 id="recipeAddTitle">Add ingredients</h2></div>
+        <button id="recipeAddClose" class="modal-close" aria-label="Close">×</button>
+      </div>
+      <p id="recipeAddHint" class="modal-intro"></p>
+      <label><span data-i18n="recipeChooseList">Choose a list</span><select id="recipeAddList"></select></label>
+      <div id="recipeIngredientChoices" class="recipe-choice-list"></div>
+      <div id="recipeAddError" class="error modal-error" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button id="recipeAddCancel" class="secondary" data-i18n="cancel">Cancel</button>
+        <button id="recipeAddConfirm" class="primary" data-i18n="recipeAddConfirm">Add selected</button>
+      </div>
+    </div>
+  </div>
 
   <!-- CHANGE PIN -->
   <div id="pinChangeModal" class="modal-backdrop" hidden>
