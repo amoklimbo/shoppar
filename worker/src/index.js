@@ -64,7 +64,7 @@ export default {async fetch(req,env){
       await env.DB.prepare("INSERT INTO lists(id,household_id,name,created_at) VALUES(?,?,?,?)").bind(uid(),householdId,"Casa",created).run();
       return json({token:householdId,existing:false},201);
     }
-    if(path==="/api/health"&&req.method==="GET")return json({ok:true,service:"shoppar",version:"2.2.0"});
+    if(path==="/api/health"&&req.method==="GET")return json({ok:true,service:"shoppar",version:"2.5.0"});
     const hid=await household(req,env); if(!hid)return json({error:"Not authenticated."},401);
     await ensureV2Schema(env);
     await ensureDefaultLists(env,hid);
