@@ -57,14 +57,14 @@ export default {async fetch(req,env){
       if(!/^\d{4}$/.test(pin))return json({error:"PIN must contain exactly 4 digits."},400);
       const pinHash=await sha256(pin);
       const existing=await env.DB.prepare("SELECT id FROM households WHERE pin_hash = ?").bind(pinHash).first();
-      if(existing)return json({token:existing.id,existing:true});
+      if(existing){await ensureDefaultLists(env,existing.id);return json({token:existing.id,existing:true});}
       const householdId=uid(),created=now();
       await env.DB.prepare("INSERT INTO households(id,pin_hash,created_at) VALUES(?,?,?)").bind(householdId,pinHash,created).run();
       await env.DB.prepare("INSERT INTO lists(id,household_id,name,created_at) VALUES(?,?,?,?)").bind(uid(),householdId,"Supermercado",created).run();
       await env.DB.prepare("INSERT INTO lists(id,household_id,name,created_at) VALUES(?,?,?,?)").bind(uid(),householdId,"Casa",created).run();
       return json({token:householdId,existing:false},201);
     }
-    if(path==="/api/health"&&req.method==="GET")return json({ok:true,service:"shoppar",version:"2.0.1"});
+    if(path==="/api/health"&&req.method==="GET")return json({ok:true,service:"shoppar",version:"2.1.0"});
     const hid=await household(req,env); if(!hid)return json({error:"Not authenticated."},401);
     await ensureV2Schema(env);
     await ensureDefaultLists(env,hid);
