@@ -36,6 +36,16 @@ async function ensureV2Schema(env){
   })().catch(e=>{schemaReady=null;throw e});
   return schemaReady;
 }
+async function ensureDefaultLists(env, householdId){
+  const defaults=["Supermercado","Casa"];
+  for(const name of defaults){
+    const exists=await env.DB.prepare("SELECT id FROM lists WHERE household_id=? AND name=?").bind(householdId,name).first();
+    if(!exists){
+      await env.DB.prepare("INSERT INTO lists(id,household_id,name,created_at) VALUES(?,?,?,?)").bind(uid(),householdId,name,now()).run();
+    }
+  }
+}
+
 function recipeRow(r){return {...r,ingredients:JSON.parse(r.ingredients_json||"[]")}}
 
 export default {async fetch(req,env){
@@ -54,9 +64,10 @@ export default {async fetch(req,env){
       await env.DB.prepare("INSERT INTO lists(id,household_id,name,created_at) VALUES(?,?,?,?)").bind(uid(),householdId,"Casa",created).run();
       return json({token:householdId,existing:false},201);
     }
-    if(path==="/api/health"&&req.method==="GET")return json({ok:true,service:"shoppar",version:"2.0"});
+    if(path==="/api/health"&&req.method==="GET")return json({ok:true,service:"shoppar",version:"2.0.1"});
     const hid=await household(req,env); if(!hid)return json({error:"Not authenticated."},401);
     await ensureV2Schema(env);
+    await ensureDefaultLists(env,hid);
 
     if(path==="/api/change-pin"&&req.method==="POST"){
       const data=await body(req),newPin=String(data?.new_pin??"");
