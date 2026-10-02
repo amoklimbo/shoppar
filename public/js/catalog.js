@@ -8,10 +8,14 @@ export const SHOP_CATEGORIES = [
   "Carne e peixe",
   "Padaria",
   "Mercearia",
+  "Conservas",
+  "Snacks e doces",
   "Bebidas",
   "Congelados",
   "Higiene",
   "Casa",
+  "Animais",
+  "Bebé",
   "Outros",
 ];
 export const HOME_CATEGORIES = [
@@ -142,7 +146,7 @@ function save() {
   store.set(KEYS.known, JSON.stringify(known));
 }
 
-export function remember(list, item) {
+export function remember(list, item, manual = false) {
   const key = `${isHomeList(list) ? "h" : "s"}:${normalize(item.name)}`;
   if (!normalize(item.name)) return;
   const all = load();
@@ -153,6 +157,7 @@ export function remember(list, item) {
     unit: item.unit || "un.",
     quantity: item.quantity || 1,
     price: item.price ?? previous.price ?? null,
+    manual: manual || (previous.manual && previous.category === item.category) || false,
     count: previous.count + 1,
     at: Date.now(),
   };
@@ -180,13 +185,20 @@ export function learnFrom(list, items) {
   if (changed) save();
 }
 
+// Ordem de prioridade: escolha manual guardada → dicionário → categoria já usada (se não for "Outros").
 export function guessCategory(list, name) {
   const key = `${isHomeList(list) ? "h" : "s"}:${normalize(name)}`;
+  const set = categoriesFor(list);
   const seen = load()[key];
-  if (seen && categoriesFor(list).includes(seen.category)) return seen.category;
+  if (seen?.manual && set.includes(seen.category)) return seen.category;
   const home = isHomeList(list);
-  return lookup(name, home ? HOME_WORDS : SHOP_WORDS, home ? HOME_PHRASES : SHOP_PHRASES);
+  const guess = lookup(name, home ? HOME_WORDS : SHOP_WORDS, home ? HOME_PHRASES : SHOP_PHRASES);
+  if (guess && set.includes(guess)) return guess;
+  if (seen && seen.category !== "Outros" && set.includes(seen.category)) return seen.category;
+  return null;
 }
+
+export const CATEGORY_KEYWORDS = { shop: SHOP_WORDS, home: HOME_WORDS };
 
 // alias: devolve o nome tal como é mostrado (ex.: "Leite" → "Milk"), para também se encontrar por aí.
 export function suggestions(list, text, limit = 4, alias = (x) => x) {

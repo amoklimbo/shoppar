@@ -37,39 +37,56 @@ export function renderLists() {
 
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
+// Itens de cada lista já carregados: trocar de lista mostra logo o conteúdo, sem esperar pela rede.
+const cache = new Map();
+let switching = false;
+
 export async function selectList(list, direction = 0) {
-  if (state.activeList?.id === list.id) return;
+  if (state.activeList?.id === list.id || switching) return;
+  switching = true;
   const panel = $(".list-panel");
-  // sai para o lado de onde veio o gesto; entra pelo lado oposto
-  if (direction && !reducedMotion() && panel.animate) {
-    await panel
-      .animate(
+  const from = state.lists.findIndex((l) => l.id === state.activeList?.id);
+  const dir = direction || Math.sign(state.lists.findIndex((l) => l.id === list.id) - from);
+  const animate = dir && !reducedMotion() && panel.animate;
+  try {
+    // 1. o conteúdo atual sai para o lado do gesto
+    if (animate) {
+      await panel
+        .animate(
+          [
+            { transform: panel.style.transform || "none", opacity: Number(panel.style.opacity) || 1 },
+            { transform: `translateX(${-dir * 70}px)`, opacity: 0 },
+          ],
+          { duration: 110, easing: "ease-in" },
+        )
+        .finished.catch(() => {});
+    }
+    // 2. aba e conteúdo mudam no mesmo instante (a partir da cache)
+    state.activeList = list;
+    categoryTouched = false;
+    state.activeCategory = "Outros";
+    panel.style.transform = "";
+    panel.style.opacity = "";
+    state.items = cache.get(list.id) || [];
+    state.loading = !cache.has(list.id);
+    renderLists();
+    renderItems();
+    $(".list-tab.active")?.scrollIntoView?.({ inline: "center", block: "nearest" });
+    onNameInput();
+    // 3. o novo conteúdo entra pelo lado oposto
+    if (animate) {
+      panel.animate(
         [
-          { transform: panel.style.transform || "none", opacity: 1 },
-          { transform: `translateX(${-direction * 90}px)`, opacity: 0 },
+          { transform: `translateX(${dir * 70}px)`, opacity: 0 },
+          { transform: "none", opacity: 1 },
         ],
-        { duration: 150, easing: "ease-in" },
-      )
-      .finished.catch(() => {});
+        { duration: 240, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+      );
+    }
+  } finally {
+    switching = false;
   }
-  state.activeList = list;
-  categoryTouched = false;
-  state.activeCategory = "Outros";
-  panel.style.transform = "";
-  panel.style.opacity = "";
-  renderLists();
-  $(".list-tab.active")?.scrollIntoView?.({ inline: "center", block: "nearest" });
-  onNameInput();
-  await loadItems();
-  if (direction && !reducedMotion() && panel.animate) {
-    panel.animate(
-      [
-        { transform: `translateX(${direction * 90}px)`, opacity: 0 },
-        { transform: "none", opacity: 1 },
-      ],
-      { duration: 300, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
-    );
-  }
+  await loadItems().catch(() => {}); // atualiza em segundo plano; só redesenha se algo mudou
 }
 
 // Deslizar para o lado muda de lista: a lista acompanha o dedo e, ao largar, sai e a nova entra.
@@ -132,6 +149,22 @@ export async function loadLists() {
   if (!state.lists.some((l) => l.id === state.activeList?.id)) state.activeList = state.lists[0] || null;
   renderLists();
   await loadItems();
+  prefetchOthers();
+}
+
+// Carrega em segundo plano as outras listas, para o swipe ser instantâneo.
+function prefetchOthers() {
+  for (const list of state.lists) {
+    if (list.id === state.activeList?.id || mutating) continue;
+    api(`/api/lists/${list.id}/items`)
+      .then((data) =>
+        cache.set(
+          list.id,
+          (data.results || []).filter((i) => !hiddenIds.has(i.id)),
+        ),
+      )
+      .catch(() => {});
+  }
 }
 
 const signature = (items) =>
@@ -147,7 +180,10 @@ export async function loadItems() {
   if (state.activeList?.id !== list.id) return; // o utilizador mudou de lista entretanto
   const items = (data.results || []).filter((i) => !hiddenIds.has(i.id));
   learnFrom(list, items);
-  if (signature(items) === signature(state.items)) return; // nada mudou: não redesenhar
+  cache.set(list.id, items);
+  const wasLoading = state.loading;
+  state.loading = false;
+  if (signature(items) === signature(state.items)) return wasLoading ? renderItems() : undefined; // nada mudou
   state.items = items;
   renderItems();
 }
@@ -234,7 +270,8 @@ function itemRow(item, withCategory) {
 
 export function renderItems() {
   const container = $("#items");
-  $("#emptyState").hidden = state.items.length > 0;
+  if (state.activeList) cache.set(state.activeList.id, state.items);
+  $("#emptyState").hidden = state.items.length > 0 || Boolean(state.loading);
   const groups = groupItems(state.items);
   const showTitles = groups.length > 1 || groups.some((g) => g.bought);
   container.replaceChildren(
@@ -376,11 +413,12 @@ export async function addItem() {
     unit: $("#itemUnit").value.trim() || "un.",
     store: isHome() ? $("#itemStore").value.trim() : "",
   };
+  const wasManual = categoryTouched;
   $("#addItem").disabled = true;
   mutating++;
   try {
     const item = await api(`/api/lists/${list.id}/items`, { method: "POST", body });
-    remember(list, item);
+    remember(list, item, wasManual);
     if (state.activeList?.id === list.id) {
       state.items = [...state.items, item].sort(byOrder);
       renderItems();
@@ -538,7 +576,7 @@ export async function saveEdit() {
         store: isHome() ? $("#editItemStore").value.trim() : "",
       },
     });
-    remember(state.activeList, saved);
+    remember(state.activeList, saved, true);
     const index = state.items.findIndex((i) => i.id === id);
     if (index >= 0) state.items[index] = saved;
     renderItems();

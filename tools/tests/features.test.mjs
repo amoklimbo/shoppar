@@ -55,6 +55,7 @@ test("categoria detetada ao escrever; Casa tem categorias próprias", async () =
   assert.match(await page.textContent(".item-meta"), /Dairy/);
 
   await page.click(".list-tab:nth-child(2)");
+  await page.waitForFunction(() => /Casa/.test(document.querySelector(".list-tab.active")?.textContent));
   await page.click("#detailsToggle");
   const chips = await page.$$eval("#categoryChips [data-category]", (els) => els.map((e) => e.dataset.category));
   assert.ok(chips.includes("Limpeza") && chips.includes("Bricolage"));
@@ -196,4 +197,78 @@ test("o botão Continuar funciona e fica desligado até haver 4 dígitos", async
   assert.equal(await page.locator("#continuePin").isDisabled(), true);
   for (const d of "424") await page.click(`[data-digit="${d}"]`);
   assert.equal(await page.locator("#continuePin").isDisabled(), true);
+});
+
+test("Supermercado mostra as categorias novas e 'Atum' vai para Conservas ao adicionar", async () => {
+  const page = await stack.newPage();
+  await login(page, "4141");
+  await page.click("#detailsToggle");
+  const chips = await page.$$eval("#categoryChips [data-category]", (els) => els.map((e) => e.dataset.category));
+  for (const c of ["Conservas", "Snacks e doces", "Animais", "Bebé"]) assert.ok(chips.includes(c), c);
+  await page.fill("#itemName", "Atum");
+  assert.equal(await page.getAttribute('#categoryChips [data-category="Conservas"]', "aria-pressed"), "true");
+  await page.click("#addItem");
+  await page.waitForSelector(".item");
+  assert.match(await page.textContent(".item-meta"), /Canned food/);
+});
+
+test("categoria antiga 'Outros' lembrada não impede a deteção automática", async () => {
+  const page = await stack.newPage();
+  await login(page, "4242");
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "shoppar_known",
+      JSON.stringify({ "s:atum": { name: "Atum", category: "Outros", unit: "un.", quantity: 1, price: null, count: 1, at: 1 } }),
+    ),
+  );
+  await page.reload();
+  await page.waitForSelector("#app:not([hidden])");
+  await page.fill("#itemName", "Atum");
+  assert.equal(await page.getAttribute('#categoryChips [data-category="Conservas"]', "aria-pressed"), "true");
+});
+
+test("swipe: aba e conteúdo mudam no mesmo instante (sem janela em que não coincidem)", async () => {
+  const ctx = await stack.browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+    serviceWorkers: "block",
+  });
+  const page = await stack.newPage({ context: ctx });
+  await login(page, "4343");
+  const tk = await token(page);
+  const lists = (await api(stack, "/api/lists", { token: tk })).data.results;
+  const post = (l, name) => api(stack, `/api/lists/${l.id}/items`, { token: tk, method: "POST", body: { name, category: "Outros" } });
+  await post(lists[0], "AAA");
+  await post(lists[1], "BBB");
+  await page.reload();
+  await page.waitForSelector(".item-name");
+  await page.waitForTimeout(800); // deixa a pré-carga da outra lista terminar
+  await page.evaluate(() => {
+    window.__mismatch = 0;
+    window.__frames = 0;
+    const tick = () => {
+      const tab = document.querySelector(".list-tab.active")?.textContent || "";
+      const names = [...document.querySelectorAll(".item-name")].map((e) => e.textContent).join(",");
+      const expected = /Casa/.test(tab) ? "BBB" : "AAA";
+      window.__frames++;
+      if (names && names !== expected) window.__mismatch++;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    const target = document.querySelector("#listsView");
+    const touch = (x) => new Touch({ identifier: 1, target, clientX: x, clientY: 400 });
+    const fire = (type, x) =>
+      target.dispatchEvent(
+        new TouchEvent(type, { bubbles: true, touches: type === "touchend" ? [] : [touch(x)], changedTouches: [touch(x)] }),
+      );
+    fire("touchstart", 300);
+    fire("touchend", 80);
+  });
+  await page.waitForFunction(() => /Casa/.test(document.querySelector(".list-tab.active")?.textContent));
+  await page.waitForTimeout(600);
+  const mismatch = await page.evaluate(() => window.__mismatch);
+  assert.equal(mismatch, 0);
+  assert.equal(await page.textContent(".item-name"), "BBB");
+  await ctx.close();
 });
