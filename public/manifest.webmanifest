@@ -12,6 +12,8 @@
   "theme_color": "#f1f2e4",
   "icons": [
     { "src": "/icons/shoppar-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/shoppar-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icons/shoppar-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/shoppar-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/shoppar-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

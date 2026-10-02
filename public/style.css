@@ -1540,3 +1540,20 @@ select:focus-visible {
 .modal .modal-grid {
   margin-top: 4px;
 }
+
+/* Shoppar 3.5 — histórico com filtros */
+.history-filters {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.history-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 6px;
+}
+.history-body div span + span::before {
+  content: "·";
+  margin: 0 6px;
+}

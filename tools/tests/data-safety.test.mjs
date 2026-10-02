@@ -48,9 +48,12 @@ test("PIN alterado noutro dispositivo NÃO cria agregado vazio no Sync do dispos
   await A.click("#pinChangeSave");
   await A.waitForSelector("#pinChangeModal", { state: "hidden" });
 
-  // B faz Sync com o PIN antigo guardado: tem de continuar a ver "Leite".
+  // B (sessão antiga) faz Sync: já não é aceite e volta ao PIN, sem criar nada.
   await B.click("#sync");
-  await B.waitForTimeout(800);
+  await B.waitForSelector("#pinScreen:not([hidden])");
+  // com o PIN novo, B volta a ver o mesmo agregado e o mesmo produto
+  await enterPin(B, "5102");
+  await B.waitForSelector(".item");
   assert.equal(await B.locator(".item .item-name").first().textContent(), "Milk");
   // e o PIN antigo não pode ter criado um agregado novo
   const probe = await api(stack, "/api/access", { method: "POST", body: { pin: "5101", create: false } });
@@ -67,7 +70,8 @@ test("API: create:false nunca cria agregado; PIN desconhecido → 401", async ()
   assert.equal(made.status, 201);
   const back = await api(stack, "/api/access", { method: "POST", body: { pin: "5201", create: false } });
   assert.equal(back.status, 200);
-  assert.equal(back.data.token, made.data.token);
+  const lists = async (token) => (await api(stack, "/api/lists", { token })).data.results.map((l) => l.id).join();
+  assert.equal(await lists(back.data.token), await lists(made.data.token), "mesmo agregado");
 });
 
 test("API retrocompatível: sem o campo create, comportamento antigo (cria)", async () => {

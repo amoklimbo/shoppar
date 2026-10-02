@@ -1,6 +1,6 @@
 // Configuração, armazenamento local seguro e estado partilhado da aplicação.
 export const API = "https://shoppar.amok-limbo.workers.dev";
-export const APP_VERSION = "3.4";
+export const APP_VERSION = "3.5";
 export const LOCK_TIMEOUT = 30 * 1000;
 
 export const KEYS = {

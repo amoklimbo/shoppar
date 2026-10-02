@@ -55,7 +55,8 @@ export async function savePinChange() {
   if (!/^\d{4}$/.test(p1) || !/^\d{4}$/.test(p2)) return void (error.textContent = t("pinFormat"));
   if (p1 !== p2) return void (error.textContent = t("pinMismatch"));
   try {
-    await api("/api/change-pin", { method: "POST", body: { new_pin: p1 } });
+    const result = await api("/api/change-pin", { method: "POST", body: { new_pin: p1 } });
+    if (result.token) store.set(KEYS.token, result.token); // este dispositivo mantém-se ligado; os outros pedem o PIN novo
     closeModal("pinChangeModal");
     toast(t("saved"));
   } catch (e) {

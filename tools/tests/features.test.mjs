@@ -272,3 +272,50 @@ test("swipe: aba e conteúdo mudam no mesmo instante (sem janela em que não coi
   assert.equal(await page.textContent(".item-name"), "BBB");
   await ctx.close();
 });
+
+test("sessões: token aleatório; PIN novo termina as outras sessões e os tokens antigos", async () => {
+  const a = await api(stack, "/api/access", { method: "POST", body: { pin: "5151" } });
+  assert.match(a.data.token, /^s_[0-9a-f]{64}$/);
+  const b = await api(stack, "/api/access", { method: "POST", body: { pin: "5151" } });
+  assert.notEqual(a.data.token, b.data.token);
+  assert.equal((await api(stack, "/api/lists", { token: b.data.token })).status, 200);
+  assert.equal((await api(stack, "/api/lists", { token: "s_" + "0".repeat(64) })).status, 401);
+
+  // token antigo = id do agregado (guardado por versões anteriores)
+  const id = JSON.parse(stack.sql("SELECT id FROM households WHERE created_at > 0 ORDER BY created_at DESC LIMIT 1"))[0].results[0].id;
+  assert.equal((await api(stack, "/api/lists", { token: id })).status, 200, "token antigo ainda vale");
+
+  const changed = await api(stack, "/api/change-pin", { token: a.data.token, method: "POST", body: { new_pin: "5152" } });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.data.token, a.data.token, "o dispositivo que mudou mantém a sessão");
+  assert.equal((await api(stack, "/api/lists", { token: a.data.token })).status, 200);
+  assert.equal((await api(stack, "/api/lists", { token: b.data.token })).status, 401, "outras sessões terminam");
+  assert.equal((await api(stack, "/api/lists", { token: id })).status, 401, "token antigo deixa de valer");
+});
+
+test("sessão expirada é recusada", async () => {
+  const a = await api(stack, "/api/access", { method: "POST", body: { pin: "5161" } });
+  stack.sql("UPDATE sessions SET expires_at = 1");
+  assert.equal((await api(stack, "/api/lists", { token: a.data.token })).status, 401);
+});
+
+test("histórico reúne todas as listas e filtra por loja", async () => {
+  const page = await stack.newPage();
+  await login(page, "4444");
+  const tk = await token(page);
+  const [shop, home] = (await api(stack, "/api/lists", { token: tk })).data.results;
+  const done = async (list, body) => {
+    const item = await api(stack, `/api/lists/${list.id}/items`, { token: tk, method: "POST", body });
+    await api(stack, `/api/items/${item.data.id}`, { token: tk, method: "PUT", body: { done: true } });
+  };
+  await done(shop, { name: "Pão", category: "Padaria", price: 1 });
+  await done(home, { name: "Esponja", category: "Limpeza", price: 2, store: "Leroy" });
+  await done(home, { name: "Parafusos", category: "Bricolage", price: 3, store: "Aqui" });
+  await page.click('.nav-item[data-view="historyView"]');
+  await page.waitForFunction(() => document.querySelectorAll(".history-row").length === 3);
+  assert.match(await page.textContent("#historyTotal"), /6/);
+  await page.click('.history-filter:last-child .category-chip:has-text("Leroy")');
+  await page.waitForFunction(() => document.querySelectorAll(".history-row").length === 1);
+  assert.match(await page.textContent(".history-row"), /Sponge/);
+  assert.match(await page.textContent("#historyTotal"), /2/);
+});

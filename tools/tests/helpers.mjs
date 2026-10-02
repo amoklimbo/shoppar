@@ -142,6 +142,9 @@ export async function startStack({ workerPort = 8791, webPort = 8790 } = {}) {
     browser,
     newPage,
     externalHits,
+    // SQL direto na D1 local de teste (nunca na real): para preparar casos como tokens antigos.
+    sql: (query) =>
+      execFileSync("npx", wr("d1", "execute", "DB", "--local", "--command", query, "--json"), { cwd: TOOLS, encoding: "utf8" }),
     async stop() {
       await browser.close().catch(() => {});
       web.close();
