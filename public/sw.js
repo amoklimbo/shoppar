@@ -18,7 +18,6 @@ const APP_SHELL = [
   "/js/search.js",
   "/js/views.js",
   "/js/prefs.js",
-  "/icons/shoppar.svg",
   "/icons/shoppar-64.png",
   "/icons/shoppar-180.png",
   "/icons/shoppar-192.png",
