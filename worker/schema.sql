@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS households (
   id TEXT PRIMARY KEY,
   pin_hash TEXT NOT NULL UNIQUE,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  legacy_ok INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS lists (
   id TEXT PRIMARY KEY,
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS history (
   price REAL,
   quantity REAL NOT NULL DEFAULT 1,
   unit TEXT,
+  store TEXT,
   completed_at INTEGER NOT NULL,
   FOREIGN KEY (list_id) REFERENCES lists(id)
 );
@@ -46,12 +48,20 @@ CREATE TABLE IF NOT EXISTS recipes (
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (household_id) REFERENCES households(id)
 );
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  household_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT NOT NULL,
   window INTEGER NOT NULL,
   count INTEGER NOT NULL,
   PRIMARY KEY (key, window)
 );
+CREATE INDEX IF NOT EXISTS idx_sessions_household ON sessions(household_id);
+CREATE INDEX IF NOT EXISTS idx_history_completed ON history(completed_at);
 CREATE INDEX IF NOT EXISTS idx_items_list ON items(list_id);
 CREATE INDEX IF NOT EXISTS idx_history_list ON history(list_id);
 CREATE INDEX IF NOT EXISTS idx_recipes_household ON recipes(household_id);

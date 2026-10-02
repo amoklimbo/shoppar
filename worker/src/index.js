@@ -1,7 +1,7 @@
 // Shoppar API — Cloudflare Worker + D1.
 // Todas as migrações são ADITIVAS (nunca apagam nem alteram dados existentes).
 
-const VERSION = "3.4.0";
+const VERSION = "3.5.0";
 
 const LIMITS = {
   name: 120,
@@ -19,6 +19,7 @@ const LIMITS = {
 };
 const ACCESS_LIMIT = { max: 30, windowSec: 60 };
 const DEFAULT_LISTS = ["Supermercado", "Casa"];
+const SESSION = { ttlMs: 90 * 24 * 3600 * 1000, renewMs: 7 * 24 * 3600 * 1000, perHousehold: 20 };
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -76,6 +77,10 @@ function ensureSchema(env) {
     const columns = async (table) => ((await env.DB.prepare(`PRAGMA table_info(${table})`).all()).results || []).map((c) => c.name);
     if (!(await columns("items")).includes("store")) await env.DB.prepare("ALTER TABLE items ADD COLUMN store TEXT").run();
     if (!(await columns("history")).includes("unit")) await env.DB.prepare("ALTER TABLE history ADD COLUMN unit TEXT").run();
+    if (!(await columns("history")).includes("store")) await env.DB.prepare("ALTER TABLE history ADD COLUMN store TEXT").run();
+    // legacy_ok: tokens antigos (o próprio id do agregado) deixam de valer depois de uma mudança de PIN.
+    if (!(await columns("households")).includes("legacy_ok"))
+      await env.DB.prepare("ALTER TABLE households ADD COLUMN legacy_ok INTEGER NOT NULL DEFAULT 1").run();
     await env.DB.batch([
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS recipes(
         id TEXT PRIMARY KEY, household_id TEXT NOT NULL, name TEXT NOT NULL,
@@ -83,6 +88,11 @@ function ensureSchema(env) {
         created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
         FOREIGN KEY (household_id) REFERENCES households(id))`),
       env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_recipes_household ON recipes(household_id)"),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS sessions(
+        id TEXT PRIMARY KEY, household_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)`),
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_sessions_household ON sessions(household_id)"),
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_history_completed ON history(completed_at)"),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS rate_limits(
         key TEXT NOT NULL, window INTEGER NOT NULL, count INTEGER NOT NULL,
         PRIMARY KEY (key, window))`),
@@ -126,12 +136,51 @@ async function withinRateLimit(env, req, bucket, { max, windowSec }) {
 }
 
 // ------------------------------------------------------------ autenticação
+const SESSION_PREFIX = "s_";
+const bytesToHex = (bytes) => [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+// Sessão nova: o dispositivo recebe um token aleatório; só o hash fica na base de dados.
+async function createSession(env, householdId) {
+  const token = SESSION_PREFIX + bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
+  const ts = now();
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO sessions(id,household_id,created_at,expires_at) VALUES(?,?,?,?)").bind(
+      await sha256(token),
+      householdId,
+      ts,
+      ts + SESSION.ttlMs,
+    ),
+    // mantém só as sessões mais recentes de cada agregado
+    env.DB.prepare(
+      `DELETE FROM sessions WHERE household_id=? AND id NOT IN
+       (SELECT id FROM sessions WHERE household_id=? ORDER BY created_at DESC LIMIT ?)`,
+    ).bind(householdId, householdId, SESSION.perHousehold),
+  ]);
+  if (Math.random() < 0.02) await env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(ts).run();
+  return token;
+}
+
+// Aceita sessões (s_…) e, enquanto o agregado não mudar de PIN, o token antigo (id do agregado).
 async function householdFromToken(req, env) {
   const token = req.headers.get("x-household-token");
   if (!token) return null;
-  const row = await env.DB.prepare("SELECT id FROM households WHERE id=?").bind(token).first();
+  if (token.startsWith(SESSION_PREFIX)) {
+    const id = await sha256(token);
+    const row = await env.DB.prepare("SELECT household_id,expires_at FROM sessions WHERE id=?").bind(id).first();
+    if (!row || row.expires_at <= now()) return null;
+    if (row.expires_at - now() < SESSION.ttlMs - SESSION.renewMs)
+      await env.DB.prepare("UPDATE sessions SET expires_at=? WHERE id=?")
+        .bind(now() + SESSION.ttlMs, id)
+        .run();
+    return row.household_id;
+  }
+  const row = await env.DB.prepare("SELECT id FROM households WHERE id=? AND legacy_ok=1").bind(token).first();
   return row?.id || null;
 }
+const currentSessionId = async (req) => {
+  const token = req.headers.get("x-household-token") || "";
+  return token.startsWith(SESSION_PREFIX) ? sha256(token) : null;
+};
 
 // POST /api/access
 //  - create omitido  → comportamento histórico: entra ou cria (retrocompatível).
@@ -156,7 +205,7 @@ async function access(req, env) {
 
   if (existing) {
     await ensureDefaultLists(env, existing.id);
-    return json({ token: existing.id, existing: true });
+    return json({ token: await createSession(env, existing.id), existing: true });
   }
   // lookup:true → pergunta "existe?" sem erro HTTP (o cliente decide se pede confirmação para criar).
   if (data.lookup === true && data.create !== true) return json({ token: null, existing: false, code: "unknown_pin" });
@@ -170,10 +219,10 @@ async function access(req, env) {
     // Corrida: outro pedido criou o mesmo PIN entretanto.
     const winner = await env.DB.prepare("SELECT id FROM households WHERE pin_hash=?").bind(pinHash).first();
     await ensureDefaultLists(env, winner.id);
-    return json({ token: winner.id, existing: true });
+    return json({ token: await createSession(env, winner.id), existing: true });
   }
   await ensureDefaultLists(env, id);
-  return json({ token: id, existing: false }, 201);
+  return json({ token: await createSession(env, id), existing: false }, 201);
 }
 
 // -------------------------------------------------------------- receitas
@@ -212,9 +261,9 @@ async function route(req, env, url) {
   if (path === "/api/access" && method === "POST") return access(req, env);
   if (path === "/api/health" && method === "GET") return json({ ok: true, service: "shoppar", version: VERSION });
 
+  await ensureSchema(env);
   const hid = await householdFromToken(req, env);
   if (!hid) return fail(401, "unauthenticated", "Not authenticated.");
-  await ensureSchema(env);
 
   if (path === "/api/change-pin" && method === "POST") {
     const newPin = String((await readBody(req)).new_pin ?? "");
@@ -222,14 +271,38 @@ async function route(req, env, url) {
     const hash = await sha256(newPin);
     const clash = await env.DB.prepare("SELECT id FROM households WHERE pin_hash=? AND id!=?").bind(hash, hid).first();
     if (clash) return fail(409, "pin_in_use", "This PIN is already in use.");
-    await env.DB.prepare("UPDATE households SET pin_hash=? WHERE id=?").bind(hash, hid).run();
-    return json({ ok: true, token: hid });
+    // Um PIN novo termina todas as outras sessões e os tokens antigos; este dispositivo mantém a sua.
+    const keep = await currentSessionId(req);
+    await env.DB.batch([
+      env.DB.prepare("UPDATE households SET pin_hash=?,legacy_ok=0 WHERE id=?").bind(hash, hid),
+      env.DB.prepare("DELETE FROM sessions WHERE household_id=? AND id IS NOT ?").bind(hid, keep),
+    ]);
+    return json({ ok: true, token: keep ? req.headers.get("x-household-token") : await createSession(env, hid) });
   }
 
   if (path === "/api/lists" && method === "GET") {
     await ensureDefaultLists(env, hid);
     const r = await env.DB.prepare("SELECT id,name,created_at FROM lists WHERE household_id=? ORDER BY created_at,rowid").bind(hid).all();
     return json({ results: r.results || [] });
+  }
+
+  // Histórico de todas as listas do agregado, com filtro opcional por loja.
+  if (path === "/api/history" && method === "GET") {
+    const store = clean(url.searchParams.get("store"), LIMITS.store);
+    const rows = await env.DB.prepare(
+      `SELECT h.id,h.list_id,l.name AS list_name,h.item_name,h.category,h.price,h.quantity,h.unit,h.store,h.completed_at
+       FROM history h JOIN lists l ON l.id=h.list_id
+       WHERE l.household_id=? AND (?='' OR h.store=?) ORDER BY h.completed_at DESC LIMIT 500`,
+    )
+      .bind(hid, store, store)
+      .all();
+    const stores = await env.DB.prepare(
+      `SELECT DISTINCT h.store FROM history h JOIN lists l ON l.id=h.list_id
+       WHERE l.household_id=? AND h.store IS NOT NULL AND h.store!='' ORDER BY h.store COLLATE NOCASE LIMIT 50`,
+    )
+      .bind(hid)
+      .all();
+    return json({ results: rows.results || [], stores: (stores.results || []).map((r) => r.store) });
   }
 
   // Listas: itens, histórico, operações em lote
@@ -276,7 +349,7 @@ async function route(req, env, url) {
     }
     if (sub === "history" && method === "GET") {
       const r = await env.DB.prepare(
-        "SELECT id,item_name,category,price,quantity,unit,completed_at FROM history WHERE list_id=? ORDER BY completed_at DESC LIMIT 500",
+        "SELECT id,item_name,category,price,quantity,unit,store,completed_at FROM history WHERE list_id=? ORDER BY completed_at DESC LIMIT 500",
       )
         .bind(listId)
         .all();
@@ -307,8 +380,8 @@ async function route(req, env, url) {
       if (done && !item.done)
         statements.push(
           env.DB.prepare(
-            "INSERT INTO history(id,list_id,item_name,category,price,quantity,unit,completed_at) VALUES(?,?,?,?,?,?,?,?)",
-          ).bind(uid(), item.list_id, f.name, f.category, f.price, f.quantity, f.unit, completedAt),
+            "INSERT INTO history(id,list_id,item_name,category,price,quantity,unit,store,completed_at) VALUES(?,?,?,?,?,?,?,?,?)",
+          ).bind(uid(), item.list_id, f.name, f.category, f.price, f.quantity, f.unit, f.store, completedAt),
         );
       await env.DB.batch(statements);
       return json(await env.DB.prepare("SELECT * FROM items WHERE id=?").bind(id).first());
