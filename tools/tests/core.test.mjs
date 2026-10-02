@@ -35,6 +35,7 @@ test("adicionar, concluir, editar, histórico e eliminar produto", async () => {
   const page = await stack.newPage();
   await login(page, "4102");
   await page.fill("#itemName", "Leite");
+  await page.click("#detailsToggle");
   await page.fill("#itemPrice", "1,5");
   await page.click("#addItem");
   await page.waitForSelector(".item .item-name");

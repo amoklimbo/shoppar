@@ -182,6 +182,7 @@ test("UI: concluir é imediato (otimista) e o total só conta o que falta", asyn
   const page = await stack.newPage();
   await login(page, "6204");
   await page.fill("#itemName", "Leite");
+  await page.click("#detailsToggle");
   await page.fill("#itemPrice", "2");
   await page.click("#addItem");
   await page.waitForSelector(".item");

@@ -57,66 +57,105 @@ export async function loadItems() {
 // ---------------------------------------------------------------- produtos
 const byOrder = (a, b) => a.done - b.done || a.created_at - b.created_at;
 
+// Ordem aproximada de um percurso numa loja; categorias desconhecidas ficam antes de "Outros".
+const STORE_ORDER = ["Fruta", "Vegetais", "Laticínios", "Higiene", "Casa"];
+const rank = (category) => {
+  const i = STORE_ORDER.indexOf(category);
+  return i >= 0 ? i : category === "Outros" ? STORE_ORDER.length + 1 : STORE_ORDER.length;
+};
+
+function groupItems(items) {
+  const open = new Map();
+  for (const item of items.filter((i) => !i.done)) {
+    if (!open.has(item.category)) open.set(item.category, []);
+    open.get(item.category).push(item);
+  }
+  const groups = [...open.entries()]
+    .sort((a, b) => rank(a[0]) - rank(b[0]))
+    .map(([category, list]) => ({ title: catLabel(category), list }));
+  const bought = items.filter((i) => i.done);
+  if (bought.length) groups.push({ title: t("boughtGroup"), list: bought, bought: true });
+  return groups;
+}
+
+function itemRow(item, withCategory) {
+  const meta = [`${item.quantity} ${item.unit}`];
+  if (withCategory) meta.unshift(catLabel(item.category));
+  if (formatPrice(item.price)) meta.push(formatPrice(item.price));
+  if (item.store && isHome()) meta.push(item.store);
+  const fresh = item.fresh;
+  item.fresh = false;
+  return el(
+    "article",
+    { class: `item ${item.done ? "done" : ""} ${fresh ? "just-done" : ""}` },
+    el(
+      "button",
+      {
+        type: "button",
+        class: "check",
+        role: "checkbox",
+        "aria-checked": String(Boolean(item.done)),
+        "aria-label": item.name,
+        onclick: () => toggleItem(item),
+      },
+      icon("check"),
+    ),
+    el("div", { class: "item-body" }, el("strong", { class: "item-name" }, item.name), el("div", { class: "item-meta" }, meta.join(" · "))),
+    el(
+      "div",
+      { class: "item-actions" },
+      el(
+        "button",
+        {
+          type: "button",
+          class: "row-action",
+          title: t("edit"),
+          "aria-label": `${t("edit")}: ${item.name}`,
+          onclick: () => openEdit(item),
+        },
+        icon("edit"),
+      ),
+      el(
+        "button",
+        {
+          type: "button",
+          class: "row-action danger",
+          title: t("deleteItem"),
+          "aria-label": `${t("deleteItem")}: ${item.name}`,
+          onclick: () => deleteItem(item),
+        },
+        icon("close"),
+      ),
+    ),
+  );
+}
+
 export function renderItems() {
   const container = $("#items");
   $("#emptyState").hidden = state.items.length > 0;
+  const groups = groupItems(state.items);
+  const showTitles = groups.length > 1;
   container.replaceChildren(
-    ...state.items.map((item) => {
-      const meta = [catLabel(item.category), `${item.quantity} ${item.unit}`];
-      if (formatPrice(item.price)) meta.push(formatPrice(item.price));
-      if (item.store && isHome()) meta.push(item.store);
-      return el(
-        "article",
-        { class: `item ${item.done ? "done" : ""}` },
-        el(
-          "button",
-          {
-            type: "button",
-            class: "check",
-            role: "checkbox",
-            "aria-checked": String(Boolean(item.done)),
-            "aria-label": item.name,
-            onclick: () => toggleItem(item),
-          },
-          item.done ? icon("check") : null,
-        ),
-        el(
-          "div",
-          { class: "item-body" },
-          el("strong", { class: "item-name" }, item.name),
-          el("div", { class: "item-meta" }, meta.join(" · ")),
-        ),
-        el(
-          "div",
-          { class: "item-actions" },
-          el(
-            "button",
-            {
-              type: "button",
-              class: "row-action",
-              title: t("edit"),
-              "aria-label": `${t("edit")}: ${item.name}`,
-              onclick: () => openEdit(item),
-            },
-            icon("edit"),
-          ),
-          el(
-            "button",
-            {
-              type: "button",
-              class: "row-action danger",
-              title: t("deleteItem"),
-              "aria-label": `${t("deleteItem")}: ${item.name}`,
-              onclick: () => deleteItem(item),
-            },
-            icon("close"),
-          ),
-        ),
-      );
-    }),
+    ...groups.map((group) =>
+      el(
+        "section",
+        { class: `item-group ${group.bought ? "bought" : ""}` },
+        showTitles
+          ? el("h3", { class: "group-title" }, group.title, el("span", { class: "group-count" }, String(group.list.length)))
+          : null,
+        ...group.list.map((item) => itemRow(item, !showTitles)),
+      ),
+    ),
   );
-  const total = state.items.filter((i) => !i.done).reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+  const pending = state.items.filter((i) => !i.done);
+  const total = pending.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
   $("#total").textContent = formatPrice(total) || formatPrice(0);
+  $("#remaining").textContent = !state.items.length ? "" : pending.length ? t("itemsLeft", { count: pending.length }) : t("allBought");
+}
+
+export function toggleDetails(open = $("#addDetails").hidden) {
+  $("#addDetails").hidden = !open;
+  $("#detailsToggle").setAttribute("aria-expanded", String(open));
 }
 
 export function updateStoreVisibility() {
@@ -155,6 +194,9 @@ export async function addItem() {
     $("#itemUnit").value = "un.";
     $("#itemStore").value = "";
     toast(t("added"));
+    state.activeCategory = "Outros";
+    updateCategoryButtons();
+    toggleDetails(false);
     $("#itemName").focus();
   } catch (error) {
     toast(errorText(error), true);
@@ -166,13 +208,12 @@ export async function addItem() {
 // Atualização otimista: a interface muda já; se o servidor falhar, volta ao estado real.
 export async function toggleItem(item) {
   item.done = item.done ? 0 : 1;
+  item.fresh = Boolean(item.done);
   state.items.sort(byOrder);
   renderItems();
   try {
     const saved = await api(`/api/items/${item.id}`, { method: "PUT", body: { done: Boolean(item.done) } });
-    Object.assign(item, saved);
-    state.items.sort(byOrder);
-    renderItems();
+    Object.assign(item, saved); // sem novo desenho: deixa a animação de riscar terminar
   } catch (error) {
     toast(errorText(error), true);
     await loadItems().catch(() => {});

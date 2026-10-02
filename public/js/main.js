@@ -14,7 +14,7 @@ import {
   sessionExpired,
   startAuth,
 } from "./auth.js";
-import { loadLists, addItem, clearCompleted, saveEdit, updateCategoryButtons } from "./lists.js";
+import { loadLists, addItem, toggleDetails, clearCompleted, saveEdit, updateCategoryButtons } from "./lists.js";
 import { loadHistory } from "./history.js";
 import { loadRecipes, openRecipe, saveRecipe, confirmRecipeAdd } from "./recipes.js";
 import { openSearch, onSearchInput } from "./search.js";
@@ -71,6 +71,7 @@ function bind() {
   // Listas
   $("#sync").addEventListener("click", sync);
   $("#addItem").addEventListener("click", addItem);
+  $("#detailsToggle").addEventListener("click", () => toggleDetails());
   $("#itemName").addEventListener("keydown", (e) => e.key === "Enter" && addItem());
   $("#clearCompleted").addEventListener("click", clearCompleted);
   $("#editSave").addEventListener("click", saveEdit);
