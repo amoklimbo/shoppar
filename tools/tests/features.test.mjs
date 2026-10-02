@@ -319,3 +319,76 @@ test("histórico reúne todas as listas e filtra por loja", async () => {
   assert.match(await page.textContent(".history-row"), /Sponge/);
   assert.match(await page.textContent("#historyTotal"), /2/);
 });
+
+test("swipe funciona também em áreas vazias do ecrã (fora da lista)", async () => {
+  const ctx = await stack.browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+    serviceWorkers: "block",
+  });
+  const page = await stack.newPage({ context: ctx });
+  await login(page, "4545");
+  await page.waitForSelector("#emptyState", { state: "visible" });
+  await page.evaluate(() => {
+    const target = document.documentElement; // área sem conteúdo
+    const touch = (x) => new Touch({ identifier: 1, target, clientX: x, clientY: 700 });
+    const fire = (type, x) =>
+      target.dispatchEvent(
+        new TouchEvent(type, { bubbles: true, touches: type === "touchend" ? [] : [touch(x)], changedTouches: [touch(x)] }),
+      );
+    fire("touchstart", 300);
+    fire("touchend", 80);
+  });
+  await page.waitForFunction(() => /Casa/.test(document.querySelector(".list-tab.active")?.textContent));
+  await ctx.close();
+});
+
+test("navegação inferior: um só toque muda de secção, mesmo depois de fazer scroll", async () => {
+  const ctx = await stack.browser.newContext({
+    viewport: { width: 390, height: 600 },
+    hasTouch: true,
+    isMobile: true,
+    serviceWorkers: "block",
+  });
+  const page = await stack.newPage({ context: ctx });
+  await login(page, "4646");
+  const tk = await token(page);
+  const list = (await api(stack, "/api/lists", { token: tk })).data.results[0];
+  await api(stack, `/api/lists/${list.id}/items/bulk`, {
+    token: tk,
+    method: "POST",
+    body: { items: Array.from({ length: 30 }, (_, i) => ({ name: `Produto ${i}`, category: "Outros" })) },
+  });
+  await page.reload();
+  await page.waitForSelector(".item");
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.tap('.nav-item[data-view="historyView"]');
+  await page.waitForSelector("#historyView:not([hidden])", { timeout: 2000 });
+  await page.tap('.nav-item[data-view="settingsView"]');
+  await page.waitForSelector("#settingsView:not([hidden])", { timeout: 2000 });
+  await ctx.close();
+});
+
+test("definições ficam guardadas e recuperam-se do agregado se o dispositivo as perder", async () => {
+  const page = await stack.newPage();
+  await login(page, "4747");
+  await page.click('.nav-item[data-view="settingsView"]');
+  await page.click("#langPTApp");
+  await page.click("#settingsTheme");
+  await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
+  // normal: reabrir mantém PT e escuro
+  await page.reload();
+  await page.waitForSelector("#app:not([hidden])");
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
+  assert.equal(await page.evaluate(() => localStorage.getItem("shoppar_lang")), "PT");
+  // o dispositivo perde as definições locais (modo privado, limpeza do navegador)
+  await page.evaluate(() => {
+    localStorage.removeItem("shoppar_lang");
+    localStorage.removeItem("shoppar_theme");
+  });
+  await page.reload();
+  await page.waitForSelector("#app:not([hidden])");
+  await page.waitForFunction(() => localStorage.getItem("shoppar_lang") === "PT" && document.documentElement.dataset.theme === "dark");
+  assert.equal(await page.textContent("#listsTitle"), "As minhas listas");
+});

@@ -87,7 +87,24 @@ function bind() {
   $("#shopMode").addEventListener("click", toggleShopMode);
   $("#editSave").addEventListener("click", saveEdit);
   initSwipe();
-  $$(".nav-item").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+  // Navegação inferior: ativa no toque (touchend) e no clique. Em iOS, depois de fazer scroll, o primeiro
+  // toque podia perder-se; os dois caminhos juntos garantem uma só ação, à primeira.
+  $$(".nav-item").forEach((b) => {
+    let touchStart = null;
+    let lastTouch = 0;
+    b.addEventListener("touchstart", (e) => (touchStart = e.touches[0]), { passive: true });
+    b.addEventListener(
+      "touchend",
+      (e) => {
+        const end = e.changedTouches[0];
+        if (!touchStart || Math.hypot(end.clientX - touchStart.clientX, end.clientY - touchStart.clientY) > 12) return;
+        lastTouch = Date.now();
+        showView(b.dataset.view);
+      },
+      { passive: true },
+    );
+    b.addEventListener("click", () => Date.now() - lastTouch > 600 && showView(b.dataset.view));
+  });
 
   // Receitas e pesquisa
   $("#addRecipe").addEventListener("click", () => openRecipe());

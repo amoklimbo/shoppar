@@ -17,10 +17,39 @@ export function applyLanguage() {
   renderHistory();
   renderRecipes();
 }
+// Copia de segurança das preferências no agregado: se este dispositivo perder o armazenamento local
+// (modo privado, limpeza do navegador), ao entrar recupera o último idioma e tema escolhidos.
+const pushSettings = () => {
+  if (store.get(KEYS.token)) api("/api/settings", { method: "PUT", body: { lang: state.lang, theme: state.theme } }).catch(() => {});
+};
+
+export async function restoreSettings() {
+  try {
+    const remote = await api("/api/settings");
+    let changed = false;
+    if (store.get(KEYS.lang) === null && ["EN", "PT"].includes(remote.lang)) {
+      state.lang = remote.lang;
+      store.set(KEYS.lang, remote.lang);
+      changed = true;
+    }
+    if (store.get(KEYS.theme) === null && ["light", "dark"].includes(remote.theme)) {
+      state.theme = remote.theme;
+      store.set(KEYS.theme, remote.theme);
+      applyTheme();
+      changed = true;
+    }
+    if (changed) applyLanguage();
+    if (store.get(KEYS.lang) !== null || store.get(KEYS.theme) !== null) pushSettings();
+  } catch {
+    /* sem rede ou servidor antigo: ficam as preferências locais */
+  }
+}
+
 export function setLanguage(lang) {
   state.lang = lang;
   store.set(KEYS.lang, lang);
   applyLanguage();
+  pushSettings();
 }
 
 function updateThemeControls() {
@@ -40,6 +69,7 @@ export function toggleTheme() {
   state.theme = state.theme === "dark" ? "light" : "dark";
   store.set(KEYS.theme, state.theme);
   applyTheme();
+  pushSettings();
 }
 
 export function openPinChange() {

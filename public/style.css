@@ -550,9 +550,13 @@ html[data-theme="light"] .bottom-nav {
 .toast {
   position: fixed;
   z-index: 100;
-  left: 50%;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: max-content;
+  max-width: calc(100% - 24px);
   top: calc(15px + env(safe-area-inset-top));
-  transform: translate(-50%, -20px);
+  transform: translateY(-20px);
   opacity: 0;
   pointer-events: none;
   background: var(--card);
@@ -566,7 +570,7 @@ html[data-theme="light"] .bottom-nav {
 }
 .toast.show {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: none;
 }
 .icon-button.syncing {
   animation: spin 0.8s linear infinite;
@@ -819,9 +823,11 @@ textarea {
 }
 .bottom-nav {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
+  margin-inline: auto; /* centrado sem transform: transform + position:fixed falha o toque em iOS depois do scroll */
   bottom: 0;
-  transform: translateX(-50%);
+  transform: none;
   width: min(820px, calc(100% - 24px));
   height: calc(68px + env(safe-area-inset-bottom));
   padding: 5px 5px env(safe-area-inset-bottom);

@@ -5,6 +5,7 @@ import { access } from "./api.js";
 import { t } from "./i18n.js";
 import { $, $$, errorText } from "./dom.js";
 import { loadLists } from "./lists.js";
+import { restoreSettings } from "./prefs.js";
 
 let entered = "";
 let pendingPin = null;
@@ -98,6 +99,7 @@ async function enterApp(token) {
   $("#app").hidden = false;
   resetPin();
   startActivityTracking();
+  restoreSettings();
   try {
     await loadLists();
   } catch {
@@ -157,6 +159,7 @@ export async function startAuth() {
   $("#pinScreen").hidden = true;
   $("#app").hidden = false;
   startActivityTracking();
+  restoreSettings();
   try {
     await loadLists();
   } catch {

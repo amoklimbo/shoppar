@@ -89,31 +89,29 @@ export async function selectList(list, direction = 0) {
   await loadItems().catch(() => {}); // atualiza em segundo plano; só redesenha se algo mudou
 }
 
-// Deslizar para o lado muda de lista: a lista acompanha o dedo e, ao largar, sai e a nova entra.
-// Ignora campos de texto e faixas com scroll próprio.
+// Deslizar para o lado muda de lista, em qualquer ponto do ecrã (também nas áreas vazias): a lista acompanha
+// o dedo e, ao largar, sai e a nova entra. Ignora campos de texto, faixas com scroll próprio, janelas e a navegação.
 export function initSwipe() {
-  const view = $("#listsView");
   const panel = $(".list-panel");
   let start = null;
+  const active = () => !$("#app").hidden && !$("#listsView").hidden && !document.querySelector(".modal-backdrop:not([hidden])");
   const neighbour = (dx) => state.lists[state.lists.findIndex((l) => l.id === state.activeList?.id) + (dx < 0 ? 1 : -1)];
   const reset = () => {
     panel.style.transition = "transform 0.18s ease, opacity 0.18s ease";
     panel.style.transform = "";
     panel.style.opacity = "";
   };
-  view.addEventListener(
+  document.addEventListener(
     "touchstart",
     (e) => {
       const touch = e.touches[0];
-      start =
-        e.touches.length === 1 && touch && !e.target.closest("input,textarea,select,.list-tabs,.category-row,.suggestions")
-          ? { x: touch.clientX, y: touch.clientY }
-          : null;
+      const ignore = e.target.closest("input,textarea,select,.list-tabs,.category-row,.suggestions,.bottom-nav,.topbar,.toast");
+      start = active() && e.touches.length === 1 && touch && !ignore ? { x: touch.clientX, y: touch.clientY } : null;
       panel.style.transition = "none";
     },
     { passive: true },
   );
-  view.addEventListener(
+  document.addEventListener(
     "touchmove",
     (e) => {
       if (!start) return;
@@ -126,7 +124,7 @@ export function initSwipe() {
     },
     { passive: true },
   );
-  view.addEventListener(
+  document.addEventListener(
     "touchend",
     (e) => {
       if (!start) return;
@@ -140,7 +138,7 @@ export function initSwipe() {
     },
     { passive: true },
   );
-  view.addEventListener("touchcancel", () => ((start = null), reset()), { passive: true });
+  document.addEventListener("touchcancel", () => ((start = null), reset()), { passive: true });
 }
 
 export async function loadLists() {
