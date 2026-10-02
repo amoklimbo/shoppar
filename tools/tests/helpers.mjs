@@ -154,7 +154,6 @@ export async function startStack({ workerPort = 8791, webPort = 8790 } = {}) {
 
 export async function enterPin(page, pin) {
   for (const d of pin) await page.click(`[data-digit="${d}"]`);
-  await page.click("#continuePin");
 }
 
 export async function api(stack, path, { token, method = "GET", body } = {}) {

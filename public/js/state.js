@@ -1,6 +1,6 @@
 // Configuração, armazenamento local seguro e estado partilhado da aplicação.
 export const API = "https://shoppar.amok-limbo.workers.dev";
-export const APP_VERSION = "3.1";
+export const APP_VERSION = "3.2";
 export const LOCK_TIMEOUT = 30 * 1000;
 
 export const KEYS = {
@@ -8,6 +8,8 @@ export const KEYS = {
   lang: "shoppar_lang",
   theme: "shoppar_theme",
   lastActive: "shoppar_last_active_at",
+  known: "shoppar_known", // produtos usados neste dispositivo (categoria, unidade, último preço)
+  shopMode: "shoppar_shop_mode",
   legacyPin: "shoppar_pin", // versões antigas guardavam o PIN em claro; é removido ao arrancar
 };
 
@@ -37,6 +39,7 @@ const pick = (value, allowed, fallback) => (allowed.includes(value) ? value : fa
 export const state = {
   lang: pick(store.get(KEYS.lang), ["EN", "PT"], "EN"),
   theme: pick(store.get(KEYS.theme), ["light", "dark"], "light"),
+  shopMode: store.get(KEYS.shopMode) === "1",
   lists: [],
   activeList: null,
   items: [],

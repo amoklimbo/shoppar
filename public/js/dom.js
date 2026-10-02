@@ -33,13 +33,32 @@ export function setIcon(svg, name) {
 }
 
 let toastTimer;
-export function toast(message, error = false) {
+// options: true/false (erro) ou { error, action: { label, onClick }, duration }
+export function toast(message, options = false) {
+  const { error = false, action = null, duration = action ? 6000 : 2400 } = typeof options === "object" ? options : { error: options };
   const node = $("#toast");
-  node.textContent = message;
+  node.replaceChildren(message);
+  if (action) {
+    node.append(
+      el(
+        "button",
+        {
+          type: "button",
+          class: "toast-action",
+          onclick: () => {
+            node.classList.remove("show");
+            action.onClick();
+          },
+        },
+        action.label,
+      ),
+    );
+  }
   node.classList.toggle("error", error);
+  node.classList.toggle("has-action", Boolean(action));
   node.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => node.classList.remove("show"), 2400);
+  toastTimer = setTimeout(() => node.classList.remove("show"), duration);
 }
 
 // ---- modais acessíveis: foco, Escape e devolução do foco ao elemento de origem

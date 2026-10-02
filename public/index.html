@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f5f2" />
+    <meta name="theme-color" content="#f1f2e4" />
     <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -32,6 +32,9 @@
         <path d="M20 11a8 8 0 0 0-14-4.5L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4.5L20 15M20 20v-5h-5" />
       </symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-checklist" viewBox="0 0 24 24">
+        <path d="m4 7 1.5 1.5L8 5.5M4 13l1.5 1.5L8 11.5M4 19l1.5 1.5L8 17.5M11 7h9M11 13h9M11 19h9" />
+      </symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
       <symbol id="i-edit" viewBox="0 0 24 24">
         <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" />
@@ -78,7 +81,7 @@
           <img src="/icons/shoppar-512.png" alt="Shoppar" />
           <h1>Shoppar</h1>
           <p data-i18n="subtitle">Shared shopping list</p>
-          <span class="app-version">v3.1</span>
+          <span class="app-version">v3.2</span>
         </div>
 
         <div class="pin-language" role="group" aria-label="Language">
@@ -116,7 +119,6 @@
             <svg class="icon" aria-hidden="true"><use href="#i-backspace" /></svg>
           </button>
         </div>
-        <button type="button" id="continuePin" class="primary pin-continue" disabled data-i18n="continue">Continue</button>
       </section>
 
       <!-- APP -->
@@ -154,8 +156,18 @@
         <!-- LIST VIEW -->
         <section id="listsView" class="view">
           <div class="page-heading">
-            <h2 data-i18n="myLists">My lists</h2>
-            <button type="button" id="clearCompleted" class="ghost-button" data-i18n="clearDone">Clear completed</button>
+            <h2 id="listsTitle" data-i18n="myLists">My lists</h2>
+            <button
+              type="button"
+              id="shopMode"
+              class="mode-button"
+              aria-pressed="false"
+              data-i18n-aria="shopMode"
+              aria-label="Shopping mode"
+            >
+              <svg class="icon" aria-hidden="true"><use href="#i-checklist" /></svg>
+              <span data-i18n="shopMode">Shopping mode</span>
+            </button>
           </div>
 
           <nav id="listTabs" class="list-tabs" data-i18n-aria="ariaListTabs" aria-label="Lists"></nav>
@@ -176,27 +188,16 @@
                 <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
               </button>
             </div>
-            <button type="button" id="detailsToggle" class="details-toggle" aria-expanded="false" aria-controls="addDetails">
-              <span data-i18n="details">Details</span>
-              <svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg>
-            </button>
+            <div id="suggestions" class="suggestions" hidden></div>
+            <div class="details-row">
+              <button type="button" id="detailsToggle" class="details-toggle" aria-expanded="false" aria-controls="addDetails">
+                <span data-i18n="details">Details</span>
+                <svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg>
+              </button>
+              <span id="categoryHint" class="category-hint" hidden></span>
+            </div>
             <div id="addDetails" class="add-details" hidden>
-              <div class="category-row" role="group" data-i18n-aria="ariaCategory" aria-label="Category">
-                <button type="button" class="category-chip active" data-category="Outros">
-                  <span data-category-label="Outros">Other</span>
-                </button>
-                <button type="button" class="category-chip" data-category="Fruta"><span data-category-label="Fruta">Fruit</span></button>
-                <button type="button" class="category-chip" data-category="Vegetais">
-                  <span data-category-label="Vegetais">Vegetables</span>
-                </button>
-                <button type="button" class="category-chip" data-category="Laticínios">
-                  <span data-category-label="Laticínios">Dairy</span>
-                </button>
-                <button type="button" class="category-chip" data-category="Casa"><span data-category-label="Casa">Home</span></button>
-                <button type="button" class="category-chip" data-category="Higiene">
-                  <span data-category-label="Higiene">Hygiene</span>
-                </button>
-              </div>
+              <div id="categoryChips" class="category-row" role="group" data-i18n-aria="ariaCategory" aria-label="Category"></div>
               <div class="add-fields">
                 <label
                   ><span data-i18n="quantity">Qty</span
@@ -305,7 +306,7 @@
             <div class="about-logo"><img src="/icons/shoppar-180.png" alt="" /></div>
             <strong>Shoppar</strong>
             <span data-i18n="aboutText">Shared shopping, kept simple.</span>
-            <small class="app-version-inside">v3.1</small>
+            <small class="app-version-inside">v3.2</small>
           </section>
         </section>
 
@@ -401,20 +402,13 @@
           </div>
           <input id="editItemId" type="hidden" />
           <label><span data-i18n="itemName">Item</span><input id="editItemName" maxlength="120" /></label>
-          <div class="category-row modal-categories" role="group" data-i18n-aria="ariaCategory" aria-label="Category">
-            <button type="button" class="category-chip" data-edit-category="Outros"><span data-category-label="Outros">Other</span></button>
-            <button type="button" class="category-chip" data-edit-category="Fruta"><span data-category-label="Fruta">Fruit</span></button>
-            <button type="button" class="category-chip" data-edit-category="Vegetais">
-              <span data-category-label="Vegetais">Vegetables</span>
-            </button>
-            <button type="button" class="category-chip" data-edit-category="Laticínios">
-              <span data-category-label="Laticínios">Dairy</span>
-            </button>
-            <button type="button" class="category-chip" data-edit-category="Casa"><span data-category-label="Casa">Home</span></button>
-            <button type="button" class="category-chip" data-edit-category="Higiene">
-              <span data-category-label="Higiene">Hygiene</span>
-            </button>
-          </div>
+          <div
+            id="editCategoryChips"
+            class="category-row modal-categories"
+            role="group"
+            data-i18n-aria="ariaCategory"
+            aria-label="Category"
+          ></div>
           <div class="modal-grid">
             <label
               ><span data-i18n="quantity">Qty</span><input id="editItemQty" type="number" min="0.1" step="0.1" inputmode="decimal"

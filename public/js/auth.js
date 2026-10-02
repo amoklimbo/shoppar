@@ -9,6 +9,7 @@ import { loadLists } from "./lists.js";
 let entered = "";
 let pendingPin = null;
 let activityTimer = null;
+let submitting = false;
 
 const appVisible = () => !$("#app").hidden;
 
@@ -16,11 +17,12 @@ const appVisible = () => !$("#app").hidden;
 export function updatePinDots() {
   $$(".pin-dot").forEach((dot, i) => dot.classList.toggle("filled", i < entered.length));
   $("#pinDots").setAttribute("aria-label", t("pinProgress", { count: entered.length }));
-  $("#continuePin").disabled = entered.length !== 4;
 }
 export function addDigit(d) {
-  if (entered.length < 4) entered += d;
+  if (entered.length >= 4 || submitting) return;
+  entered += d;
   updatePinDots();
+  if (entered.length === 4) setTimeout(submitPin, 150); // deixa o 4.º ponto desenhar-se; depois desbloqueia sozinho
 }
 export function removeDigit() {
   entered = entered.slice(0, -1);
@@ -36,16 +38,15 @@ function resetPin() {
 function showCreateBox(visible) {
   $("#pinCreate").hidden = !visible;
   $(".keypad").hidden = visible;
-  $("#continuePin").hidden = visible;
   if (visible) $("#pinCreateConfirm").focus();
 }
 
 export async function submitPin() {
-  if (entered.length !== 4) return;
+  if (entered.length !== 4 || submitting) return;
+  submitting = true;
   const pin = entered;
   const unlocking = Boolean(store.get(KEYS.token));
   $("#pinError").textContent = "";
-  $("#continuePin").disabled = true;
   try {
     // Nunca cria agregados aqui: um PIN mal escrito não pode abrir um agregado vazio.
     const result = await access(pin, { create: false, unlock: unlocking, lookup: !unlocking });
@@ -65,6 +66,8 @@ export async function submitPin() {
     }
     entered = "";
     updatePinDots();
+  } finally {
+    submitting = false;
   }
 }
 

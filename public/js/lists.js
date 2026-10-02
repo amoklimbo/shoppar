@@ -1,10 +1,14 @@
-import { state } from "./state.js";
+import { state, store, KEYS } from "./state.js";
 import { api } from "./api.js";
 import { t, catLabel, listLabel, formatPrice } from "./i18n.js";
-import { $, $$, el, icon, toast, openModal, closeModal, errorText } from "./dom.js";
+import { $, el, icon, toast, openModal, closeModal, errorText } from "./dom.js";
+import { categoriesFor, categoryRank, isHomeList, guessCategory, suggestions, remember, learnFrom } from "./catalog.js";
 
-const isHome = () => state.activeList?.name === "Casa";
+const isHome = () => isHomeList(state.activeList);
 const listIcon = (list) => (list.name === "Supermercado" ? "cart" : list.name === "Casa" ? "home" : "list");
+
+let categoryTouched = false; // o utilizador escolheu a categoria à mão: a deteção automática deixa de a mudar
+let mutating = 0; // operações em curso; a sincronização automática espera por elas
 
 // ------------------------------------------------------------------ listas
 export function renderLists() {
@@ -26,12 +30,56 @@ export function renderLists() {
     }),
   );
   updateStoreVisibility();
+  renderCategoryChips();
+  applyShopMode();
 }
 
-export async function selectList(list) {
+export async function selectList(list, direction = 0) {
+  if (state.activeList?.id === list.id) return;
   state.activeList = list;
+  categoryTouched = false;
+  state.activeCategory = "Outros";
   renderLists();
+  $(".list-tab.active")?.scrollIntoView?.({ inline: "center", block: "nearest" });
+  onNameInput();
   await loadItems();
+  if (direction) slide(direction);
+}
+
+function slide(direction) {
+  const panel = $(".list-panel");
+  panel.classList.remove("slide-next", "slide-prev");
+  void panel.offsetWidth; // reinicia a animação
+  panel.classList.add(direction > 0 ? "slide-next" : "slide-prev");
+}
+
+// Deslizar para o lado muda de lista (só em ecrãs tácteis; ignora campos e faixas com scroll próprio).
+export function initSwipe() {
+  const view = $("#listsView");
+  let start = null;
+  view.addEventListener(
+    "touchstart",
+    (e) => {
+      start = e.touches.length === 1 && !e.target.closest("input,textarea,select,.list-tabs,.category-row") ? e.touches[0] : null;
+      if (start) start = { x: start.clientX, y: start.clientY };
+    },
+    { passive: true },
+  );
+  view.addEventListener(
+    "touchend",
+    (e) => {
+      if (!start) return;
+      const end = e.changedTouches[0];
+      const dx = end.clientX - start.x;
+      const dy = end.clientY - start.y;
+      start = null;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+      const index = state.lists.findIndex((l) => l.id === state.activeList?.id);
+      const next = state.lists[index + (dx < 0 ? 1 : -1)];
+      if (next) selectList(next, dx < 0 ? 1 : -1);
+    },
+    { passive: true },
+  );
 }
 
 export async function loadLists() {
@@ -42,27 +90,29 @@ export async function loadLists() {
   await loadItems();
 }
 
+const signature = (items) =>
+  items.map((i) => [i.id, i.name, i.category, i.quantity, i.unit, i.price, i.store, i.done].join("|")).join("\n");
+
 export async function loadItems() {
   if (!state.activeList) {
     state.items = [];
     return renderItems();
   }
-  const listId = state.activeList.id;
-  const data = await api(`/api/lists/${listId}/items`);
-  if (state.activeList?.id !== listId) return; // o utilizador mudou de lista entretanto
-  state.items = data.results || [];
+  const list = state.activeList;
+  const data = await api(`/api/lists/${list.id}/items`);
+  if (state.activeList?.id !== list.id) return; // o utilizador mudou de lista entretanto
+  const items = (data.results || []).filter((i) => !hiddenIds.has(i.id));
+  learnFrom(list, items);
+  if (signature(items) === signature(state.items)) return; // nada mudou: não redesenhar
+  state.items = items;
   renderItems();
 }
 
+// Sincronização em segundo plano: só quando não há nada a meio.
+export const canAutoSync = () => mutating === 0 && pendingBatches.size === 0 && !document.querySelector(".modal-backdrop:not([hidden])");
+
 // ---------------------------------------------------------------- produtos
 const byOrder = (a, b) => a.done - b.done || a.created_at - b.created_at;
-
-// Ordem aproximada de um percurso numa loja; categorias desconhecidas ficam antes de "Outros".
-const STORE_ORDER = ["Fruta", "Vegetais", "Laticínios", "Higiene", "Casa"];
-const rank = (category) => {
-  const i = STORE_ORDER.indexOf(category);
-  return i >= 0 ? i : category === "Outros" ? STORE_ORDER.length + 1 : STORE_ORDER.length;
-};
 
 function groupItems(items) {
   const open = new Map();
@@ -71,7 +121,7 @@ function groupItems(items) {
     open.get(item.category).push(item);
   }
   const groups = [...open.entries()]
-    .sort((a, b) => rank(a[0]) - rank(b[0]))
+    .sort((a, b) => categoryRank(state.activeList, a[0]) - categoryRank(state.activeList, b[0]))
     .map(([category, list]) => ({ title: catLabel(category), list }));
   const bought = items.filter((i) => i.done);
   if (bought.length) groups.push({ title: t("boughtGroup"), list: bought, bought: true });
@@ -87,7 +137,7 @@ function itemRow(item, withCategory) {
   item.fresh = false;
   return el(
     "article",
-    { class: `item ${item.done ? "done" : ""} ${fresh ? "just-done" : ""}` },
+    { class: `item ${item.done ? "done" : ""} ${fresh ? "just-done" : ""}`, onclick: () => state.shopMode && toggleItem(item) },
     el(
       "button",
       {
@@ -96,7 +146,10 @@ function itemRow(item, withCategory) {
         role: "checkbox",
         "aria-checked": String(Boolean(item.done)),
         "aria-label": item.name,
-        onclick: () => toggleItem(item),
+        onclick: (e) => {
+          e.stopPropagation();
+          toggleItem(item);
+        },
       },
       icon("check"),
     ),
@@ -134,14 +187,22 @@ export function renderItems() {
   const container = $("#items");
   $("#emptyState").hidden = state.items.length > 0;
   const groups = groupItems(state.items);
-  const showTitles = groups.length > 1;
+  const showTitles = groups.length > 1 || groups.some((g) => g.bought);
   container.replaceChildren(
     ...groups.map((group) =>
       el(
         "section",
         { class: `item-group ${group.bought ? "bought" : ""}` },
         showTitles
-          ? el("h3", { class: "group-title" }, group.title, el("span", { class: "group-count" }, String(group.list.length)))
+          ? el(
+              "h3",
+              { class: "group-title" },
+              group.title,
+              el("span", { class: "group-count" }, String(group.list.length)),
+              group.bought
+                ? el("button", { type: "button", id: "clearCompleted", class: "ghost-button", onclick: clearCompleted }, t("clearDone"))
+                : null,
+            )
           : null,
         ...group.list.map((item) => itemRow(item, !showTitles)),
       ),
@@ -156,6 +217,91 @@ export function renderItems() {
 export function toggleDetails(open = $("#addDetails").hidden) {
   $("#addDetails").hidden = !open;
   $("#detailsToggle").setAttribute("aria-expanded", String(open));
+  updateHint();
+}
+
+// ---- categorias, deteção automática e sugestões
+function chipRow(container, selected, onPick) {
+  const set = [...categoriesFor(state.activeList)];
+  if (selected && !set.includes(selected)) set.splice(set.length - 1, 0, selected); // categoria antiga de um produto existente
+  container.replaceChildren(
+    ...set.map((category) =>
+      el(
+        "button",
+        {
+          type: "button",
+          class: `category-chip ${category === selected ? "active" : ""}`,
+          "aria-pressed": String(category === selected),
+          "data-category": category,
+          onclick: () => onPick(category),
+        },
+        catLabel(category),
+      ),
+    ),
+  );
+}
+
+export function renderCategoryChips() {
+  chipRow($("#categoryChips"), state.activeCategory, (category) => {
+    categoryTouched = true;
+    state.activeCategory = category;
+    renderCategoryChips();
+  });
+  chipRow($("#editCategoryChips"), state.editCategory, (category) => {
+    state.editCategory = category;
+    renderCategoryChips();
+  });
+  updateHint();
+}
+
+function updateHint() {
+  const hint = $("#categoryHint");
+  const show = $("#itemName").value.trim() && $("#addDetails").hidden && state.activeCategory !== "Outros";
+  hint.hidden = !show;
+  hint.textContent = show ? catLabel(state.activeCategory) : "";
+}
+
+export function onNameInput() {
+  const name = $("#itemName").value;
+  if (!name.trim()) categoryTouched = false;
+  if (!categoryTouched) {
+    const guess = guessCategory(state.activeList, name);
+    if ((guess || "Outros") !== state.activeCategory) {
+      state.activeCategory = guess || "Outros";
+      renderCategoryChips();
+    }
+  }
+  updateHint();
+  renderSuggestions(name);
+}
+
+function renderSuggestions(name) {
+  const box = $("#suggestions");
+  const found = suggestions(state.activeList, name);
+  box.hidden = found.length === 0;
+  box.replaceChildren(
+    ...found.map((s) =>
+      el(
+        "button",
+        { type: "button", class: "suggestion", onclick: () => applySuggestion(s) },
+        s.name,
+        s.price != null ? el("small", {}, formatPrice(s.price)) : null,
+      ),
+    ),
+  );
+}
+
+function applySuggestion(s) {
+  $("#itemName").value = s.name;
+  state.activeCategory = categoriesFor(state.activeList).includes(s.category) ? s.category : "Outros";
+  categoryTouched = true;
+  $("#itemQty").value = s.quantity || 1;
+  $("#itemUnit").value = s.unit || "un.";
+  $("#itemPrice").value = s.price ?? "";
+  renderCategoryChips();
+  renderSuggestions("");
+  if (s.price != null || (s.quantity || 1) !== 1 || (s.unit || "un.") !== "un.") toggleDetails(true);
+  $("#itemName").focus();
 }
 
 export function updateStoreVisibility() {
@@ -171,7 +317,7 @@ const numberFrom = (value) => {
 export async function addItem() {
   const name = $("#itemName").value.trim();
   if (!name || !state.activeList) return;
-  const listId = state.activeList.id;
+  const list = state.activeList;
   const quantity = numberFrom($("#itemQty").value);
   const body = {
     name,
@@ -182,9 +328,11 @@ export async function addItem() {
     store: isHome() ? $("#itemStore").value.trim() : "",
   };
   $("#addItem").disabled = true;
+  mutating++;
   try {
-    const item = await api(`/api/lists/${listId}/items`, { method: "POST", body });
-    if (state.activeList?.id === listId) {
+    const item = await api(`/api/lists/${list.id}/items`, { method: "POST", body });
+    remember(list, item);
+    if (state.activeList?.id === list.id) {
       state.items = [...state.items, item].sort(byOrder);
       renderItems();
     }
@@ -194,13 +342,16 @@ export async function addItem() {
     $("#itemUnit").value = "un.";
     $("#itemStore").value = "";
     toast(t("added"));
+    categoryTouched = false;
     state.activeCategory = "Outros";
-    updateCategoryButtons();
+    renderCategoryChips();
+    renderSuggestions("");
     toggleDetails(false);
     $("#itemName").focus();
   } catch (error) {
     toast(errorText(error), true);
   } finally {
+    mutating--;
     $("#addItem").disabled = false;
   }
 }
@@ -211,54 +362,102 @@ export async function toggleItem(item) {
   item.fresh = Boolean(item.done);
   state.items.sort(byOrder);
   renderItems();
+  mutating++;
   try {
     const saved = await api(`/api/items/${item.id}`, { method: "PUT", body: { done: Boolean(item.done) } });
     Object.assign(item, saved); // sem novo desenho: deixa a animação de riscar terminar
   } catch (error) {
     toast(errorText(error), true);
     await loadItems().catch(() => {});
+  } finally {
+    mutating--;
   }
 }
 
-export async function deleteItem(item) {
-  if (!confirm(t("confirmDelete"))) return;
-  state.items = state.items.filter((i) => i.id !== item.id);
-  renderItems();
-  try {
-    await api(`/api/items/${item.id}`, { method: "DELETE" });
-  } catch (error) {
-    toast(errorText(error), true);
+// ---- remover com "Desfazer": o pedido ao servidor só parte quando o aviso acaba
+const UNDO_MS = 6000;
+const hiddenIds = new Set();
+const pendingBatches = new Set();
+
+async function commitBatch(batch) {
+  if (!pendingBatches.delete(batch)) return;
+  clearTimeout(batch.timer);
+  const results = await Promise.allSettled(batch.items.map((i) => api(`/api/items/${i.id}`, { method: "DELETE" })));
+  batch.items.forEach((i) => hiddenIds.delete(i.id));
+  if (results.some((r) => r.status === "rejected")) {
+    toast(errorText(results.find((r) => r.status === "rejected").reason), true);
     await loadItems().catch(() => {});
   }
 }
 
-export async function clearCompleted() {
-  if (!state.activeList || !state.items.some((i) => i.done)) return;
-  const listId = state.activeList.id;
+export const flushPendingDeletes = () => Promise.all([...pendingBatches].map(commitBatch));
+
+function removeWithUndo(items, message) {
+  if (!items.length) return;
+  flushPendingDeletes();
+  const ids = new Set(items.map((i) => i.id));
+  const listId = state.activeList?.id;
+  ids.forEach((id) => hiddenIds.add(id));
+  state.items = state.items.filter((i) => !ids.has(i.id));
+  renderItems();
+  const batch = { items, timer: 0 };
+  batch.timer = setTimeout(() => commitBatch(batch), UNDO_MS);
+  pendingBatches.add(batch);
+  toast(message, {
+    duration: UNDO_MS,
+    action: {
+      label: t("undo"),
+      onClick: () => {
+        if (!pendingBatches.delete(batch)) return;
+        clearTimeout(batch.timer);
+        ids.forEach((id) => hiddenIds.delete(id));
+        if (state.activeList?.id === listId) {
+          state.items = [...state.items, ...items].sort(byOrder);
+          renderItems();
+        }
+      },
+    },
+  });
+}
+
+export const deleteItem = (item) => removeWithUndo([item], t("removed", { name: item.name }));
+
+export function clearCompleted() {
+  const done = state.items.filter((i) => i.done);
+  removeWithUndo(done, t("removedMany", { count: done.length }));
+}
+
+// ---- modo compras: letra grande, toque na linha para riscar, ecrã sempre ligado
+let wake = null;
+async function holdScreen(on) {
   try {
-    await api(`/api/lists/${listId}/items/done`, { method: "DELETE" });
-    state.items = state.items.filter((i) => !i.done);
-    renderItems();
-    toast(t("syncDone"));
-  } catch (error) {
-    toast(errorText(error), true);
+    if (on && "wakeLock" in navigator) wake = await navigator.wakeLock.request("screen");
+    else {
+      await wake?.release();
+      wake = null;
+    }
+  } catch {
+    /* sem suporte ou recusado: o modo compras funciona na mesma */
   }
+}
+document.addEventListener("visibilitychange", () => !document.hidden && state.shopMode && holdScreen(true));
+
+export function applyShopMode() {
+  const on = state.shopMode;
+  $("#listsView").classList.toggle("shopping", on);
+  $("#shopMode").setAttribute("aria-pressed", String(on));
+  $("#shopMode span").textContent = t(on ? "exitShopMode" : "shopMode");
+  $("#listsTitle").textContent = t(on ? "shopMode" : "myLists");
+}
+
+export function toggleShopMode() {
+  state.shopMode = !state.shopMode;
+  store.set(KEYS.shopMode, state.shopMode ? "1" : "0");
+  applyShopMode();
+  holdScreen(state.shopMode);
 }
 
 // ------------------------------------------------------------------ edição
-export function updateCategoryButtons() {
-  for (const b of $$("[data-category]")) {
-    const active = b.dataset.category === state.activeCategory;
-    b.classList.toggle("active", active);
-    b.setAttribute("aria-pressed", String(active));
-  }
-  for (const b of $$("[data-edit-category]")) {
-    const active = b.dataset.editCategory === state.editCategory;
-    b.classList.toggle("active", active);
-    b.setAttribute("aria-pressed", String(active));
-  }
-}
-
 export function openEdit(item) {
   $("#editItemId").value = item.id;
   $("#editItemName").value = item.name || "";
@@ -267,7 +466,7 @@ export function openEdit(item) {
   $("#editItemPrice").value = item.price ?? "";
   $("#editItemStore").value = item.store || "";
   state.editCategory = item.category || "Outros";
-  updateCategoryButtons();
+  renderCategoryChips();
   updateStoreVisibility();
   openModal("editModal", "#editItemName");
 }
@@ -277,6 +476,7 @@ export async function saveEdit() {
   const name = $("#editItemName").value.trim();
   if (!id || !name) return;
   const quantity = numberFrom($("#editItemQty").value);
+  mutating++;
   try {
     const saved = await api(`/api/items/${id}`, {
       method: "PUT",
@@ -289,6 +489,7 @@ export async function saveEdit() {
         store: isHome() ? $("#editItemStore").value.trim() : "",
       },
     });
+    remember(state.activeList, saved);
     const index = state.items.findIndex((i) => i.id === id);
     if (index >= 0) state.items[index] = saved;
     renderItems();
@@ -296,5 +497,7 @@ export async function saveEdit() {
     toast(t("saved"));
   } catch (error) {
     toast(errorText(error), true);
+  } finally {
+    mutating--;
   }
 }

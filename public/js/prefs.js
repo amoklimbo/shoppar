@@ -3,15 +3,14 @@ import { state, store, KEYS } from "./state.js";
 import { api } from "./api.js";
 import { t, translateDocument } from "./i18n.js";
 import { $, setIcon, toast, openModal, closeModal, errorText } from "./dom.js";
-import { renderLists, renderItems, updateCategoryButtons } from "./lists.js";
+import { renderLists, renderItems } from "./lists.js";
 import { renderHistory } from "./history.js";
 import { renderRecipes } from "./recipes.js";
 
-const THEME_COLORS = { light: "#f5f5f2", dark: "#171918" };
+const THEME_COLORS = { light: "#f1f2e4", dark: "#161a14" };
 
 export function applyLanguage() {
   translateDocument();
-  updateCategoryButtons();
   updateThemeControls();
   renderLists();
   renderItems();

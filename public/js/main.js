@@ -14,7 +14,17 @@ import {
   sessionExpired,
   startAuth,
 } from "./auth.js";
-import { loadLists, addItem, toggleDetails, clearCompleted, saveEdit, updateCategoryButtons } from "./lists.js";
+import {
+  loadLists,
+  addItem,
+  toggleDetails,
+  toggleShopMode,
+  onNameInput,
+  initSwipe,
+  canAutoSync,
+  flushPendingDeletes,
+  saveEdit,
+} from "./lists.js";
 import { loadHistory } from "./history.js";
 import { loadRecipes, openRecipe, saveRecipe, confirmRecipeAdd } from "./recipes.js";
 import { openSearch, onSearchInput } from "./search.js";
@@ -41,7 +51,6 @@ function bind() {
   // PIN
   $$("[data-digit]").forEach((b) => b.addEventListener("click", () => addDigit(b.dataset.digit)));
   $("#deleteDigit").addEventListener("click", removeDigit);
-  $("#continuePin").addEventListener("click", submitPin);
   $("#pinCreateConfirm").addEventListener("click", confirmCreate);
   $("#pinCreateCancel").addEventListener("click", cancelCreate);
   document.addEventListener("keydown", (e) => {
@@ -73,14 +82,10 @@ function bind() {
   $("#addItem").addEventListener("click", addItem);
   $("#detailsToggle").addEventListener("click", () => toggleDetails());
   $("#itemName").addEventListener("keydown", (e) => e.key === "Enter" && addItem());
-  $("#clearCompleted").addEventListener("click", clearCompleted);
+  $("#itemName").addEventListener("input", onNameInput);
+  $("#shopMode").addEventListener("click", toggleShopMode);
   $("#editSave").addEventListener("click", saveEdit);
-  $$("[data-category]").forEach((b) =>
-    b.addEventListener("click", () => ((state.activeCategory = b.dataset.category), updateCategoryButtons())),
-  );
-  $$("[data-edit-category]").forEach((b) =>
-    b.addEventListener("click", () => ((state.editCategory = b.dataset.editCategory), updateCategoryButtons())),
-  );
+  initSwipe();
   $$(".nav-item").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
 
   // Receitas e pesquisa
@@ -96,8 +101,33 @@ function bind() {
   document.addEventListener("keydown", (e) => e.key === "Escape" && closeTopModal() && e.preventDefault());
 }
 
-document.addEventListener("visibilitychange", () => (document.hidden ? rememberBackground() : checkAppLock()));
-window.addEventListener("pagehide", rememberBackground);
+// Sincronização automática: a cada 20 s com a app aberta e ao voltar ao primeiro plano.
+async function refreshQuietly() {
+  if (document.hidden || $("#app").hidden || !canAutoSync()) return;
+  try {
+    await loadLists();
+    if (currentView() === "historyView") await loadHistory();
+    if (currentView() === "recipesView") await loadRecipes();
+  } catch {
+    /* silencioso: o botão Sincronizar mostra erros */
+  }
+}
+setInterval(refreshQuietly, 20000);
+window.addEventListener("online", refreshQuietly);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    rememberBackground();
+    flushPendingDeletes();
+  } else {
+    checkAppLock();
+    refreshQuietly();
+  }
+});
+window.addEventListener("pagehide", () => {
+  rememberBackground();
+  flushPendingDeletes();
+});
 window.addEventListener("pageshow", checkAppLock);
 
 setUnauthorizedHandler(sessionExpired);

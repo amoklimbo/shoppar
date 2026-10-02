@@ -565,16 +565,6 @@ html[data-theme="light"] .bottom-nav {
   opacity: 1;
   transform: translate(-50%, 0);
 }
-.toast.error {
-  background: #351f1f;
-  color: #fff1f1;
-  border-color: #553030;
-}
-html[data-theme="light"] .toast.error {
-  background: #fff0f0;
-  color: #8f3434;
-  border-color: #efcaca;
-}
 .icon-button.syncing {
   animation: spin 0.8s linear infinite;
 }
@@ -858,26 +848,6 @@ textarea {
   margin-top: 3px;
   font-size: 13px;
   line-height: 1;
-}
-html[data-theme="light"] .toast {
-  background: var(--accent-soft);
-  color: #24431a;
-  border-color: rgba(79, 174, 45, 0.45);
-}
-html[data-theme="dark"] .toast {
-  background: rgba(114, 213, 74, 0.13);
-  color: #e9f8e2;
-  border-color: rgba(114, 213, 74, 0.35);
-}
-.toast.error {
-  background: #fff0f0;
-  color: #8f3434;
-  border-color: #efcaca;
-}
-html[data-theme="dark"] .toast.error {
-  background: #351f1f;
-  color: #fff1f1;
-  border-color: #553030;
 }
 .recipe-add-modal select {
   width: 100%;
@@ -1397,4 +1367,171 @@ select:focus-visible {
 .history-right strong,
 .history-right small {
   font-variant-numeric: tabular-nums;
+}
+
+/* Shoppar 3.2 — modo compras, sugestões, desfazer, deslizar entre listas */
+.mode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 560;
+}
+.mode-button .icon {
+  width: 20px;
+  height: 20px;
+}
+.mode-button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #10200a;
+}
+@media (max-width: 480px) {
+  .mode-button {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .mode-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+.page-heading {
+  align-items: center;
+}
+.details-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.category-hint {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+.suggestions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.suggestions::-webkit-scrollbar {
+  display: none;
+}
+.suggestion {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+}
+.suggestion small {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.group-title .ghost-button {
+  margin-left: auto;
+  padding: 4px 0 4px 8px;
+  font-size: 14px;
+}
+.toast.has-action {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 6px;
+  font-size: 15px;
+}
+.toast-action {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #10200a;
+  font-size: 14px;
+  font-weight: 650;
+}
+.list-panel.slide-next {
+  animation: slide-in-next 0.22s ease-out;
+}
+.list-panel.slide-prev {
+  animation: slide-in-prev 0.22s ease-out;
+}
+@keyframes slide-in-next {
+  from {
+    opacity: 0.3;
+    transform: translateX(36px);
+  }
+}
+@keyframes slide-in-prev {
+  from {
+    opacity: 0.3;
+    transform: translateX(-36px);
+  }
+}
+
+/* modo compras: só a lista, em letra grande */
+.shopping .add-bar,
+.shopping .row-action {
+  display: none;
+}
+.shopping .item {
+  min-height: 76px;
+  cursor: pointer;
+}
+.shopping .item-name {
+  font-size: 23px;
+}
+.shopping .item-meta {
+  font-size: 15px;
+}
+.shopping .check {
+  flex-basis: 52px;
+  width: 52px;
+  height: 52px;
+}
+.shopping .check::before {
+  inset: 10px;
+}
+.shopping .group-title {
+  font-size: 16px;
+}
+.shopping .total-slip strong {
+  font-size: 34px;
+}
+
+/* avisos opacos (não deixam ver o conteúdo por baixo) */
+.toast {
+  background: var(--text);
+  color: var(--bg);
+  border-color: transparent;
+}
+.toast.error {
+  background: #8f2f2f;
+  color: #fff;
 }
