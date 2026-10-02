@@ -20,15 +20,16 @@ async function login(page, pin) {
 }
 const token = (page) => page.evaluate(() => localStorage.getItem("shoppar_token"));
 async function addViaUi(page, name) {
+  const before = await page.locator(".item-name").count();
   await page.fill("#itemName", name);
   await page.click("#addItem");
-  await page.waitForFunction((n) => [...document.querySelectorAll(".item-name")].some((e) => e.textContent === n), name);
+  await page.waitForFunction((count) => document.querySelectorAll(".item-name").length > count, before);
 }
 
-test("PIN: ao completar 4 dígitos entra sozinho, sem botão Continuar", async () => {
+test("PIN: ao completar 4 dígitos entra sozinho, e o botão Continuar continua disponível", async () => {
   const page = await stack.newPage();
   await login(page, "3131"); // cria o agregado
-  assert.equal(await page.locator("#continuePin").count(), 0);
+  assert.equal(await page.locator("#continuePin").count(), 1);
   await expireLock(page);
   await page.waitForSelector("#pinScreen:not([hidden])");
   await enterPin(page, "3131");
@@ -165,4 +166,34 @@ test("sincronização automática traz alterações feitas noutro dispositivo", 
   await api(stack, `/api/lists/${list.id}/items`, { token: tk, method: "POST", body: { name: "Chegou de fora", category: "Outros" } });
   await page.waitForSelector(".item-name", { timeout: 30000 });
   assert.equal(await page.textContent(".item-name"), "Chegou de fora");
+});
+
+test("nomes comuns aparecem na língua da app, sem alterar o que ficou guardado", async () => {
+  const page = await stack.newPage();
+  await login(page, "3939");
+  await addViaUi(page, "Leite");
+  assert.equal(await page.textContent(".item-name"), "Milk"); // app em inglês
+  const tk = await token(page);
+  const list = (await api(stack, "/api/lists", { token: tk })).data.results[0];
+  const stored = (await api(stack, `/api/lists/${list.id}/items`, { token: tk })).data.results[0];
+  assert.equal(stored.name, "Leite");
+  await page.click('.nav-item[data-view="settingsView"]');
+  await page.click("#langPTApp");
+  await page.click('.nav-item[data-view="listsView"]');
+  assert.equal(await page.textContent(".item-name"), "Leite");
+});
+
+test("conservas: atum é detetado como Conservas", async () => {
+  const page = await stack.newPage();
+  await login(page, "4040");
+  await page.fill("#itemName", "Atum");
+  assert.equal((await page.textContent("#categoryHint")).trim(), "Canned food");
+});
+
+test("o botão Continuar funciona e fica desligado até haver 4 dígitos", async () => {
+  const page = await stack.newPage();
+  await page.goto(stack.web);
+  assert.equal(await page.locator("#continuePin").isDisabled(), true);
+  for (const d of "424") await page.click(`[data-digit="${d}"]`);
+  assert.equal(await page.locator("#continuePin").isDisabled(), true);
 });

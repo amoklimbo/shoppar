@@ -1,5 +1,5 @@
 // Service worker: rede primeiro (as atualizações chegam logo), cache só para uso offline.
-const CACHE = "shoppar-v3-2";
+const CACHE = "shoppar-v3-3";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -14,6 +14,7 @@ const APP_SHELL = [
   "/js/api.js",
   "/js/auth.js",
   "/js/catalog.js",
+  "/js/names.js",
   "/js/lists.js",
   "/js/history.js",
   "/js/recipes.js",

@@ -1,3 +1,4 @@
+import { displayName } from "./names.js";
 import { state } from "./state.js";
 import { api } from "./api.js";
 import { t, catLabel, formatPrice, formatDate } from "./i18n.js";
@@ -29,7 +30,7 @@ export function renderHistory() {
         el(
           "div",
           { class: "history-body" },
-          el("strong", {}, h.item_name),
+          el("strong", {}, displayName(h.item_name)),
           el("div", {}, el("span", {}, catLabel(h.category)), el("span", {}, quantity)),
         ),
         el("div", { class: "history-right" }, el("strong", {}, formatPrice(h.price) || "—"), el("small", {}, formatDate(h.completed_at))),

@@ -51,7 +51,7 @@ test("PIN alterado noutro dispositivo NÃO cria agregado vazio no Sync do dispos
   // B faz Sync com o PIN antigo guardado: tem de continuar a ver "Leite".
   await B.click("#sync");
   await B.waitForTimeout(800);
-  assert.equal(await B.locator(".item .item-name").first().textContent(), "Leite");
+  assert.equal(await B.locator(".item .item-name").first().textContent(), "Milk");
   // e o PIN antigo não pode ter criado um agregado novo
   const probe = await api(stack, "/api/access", { method: "POST", body: { pin: "5101", create: false } });
   assert.equal(probe.status, 401, "PIN antigo não deve existir nem ter sido recriado");

@@ -1,7 +1,7 @@
 // Shoppar API — Cloudflare Worker + D1.
 // Todas as migrações são ADITIVAS (nunca apagam nem alteram dados existentes).
 
-const VERSION = "3.2.0";
+const VERSION = "3.3.0";
 
 const LIMITS = {
   name: 120,

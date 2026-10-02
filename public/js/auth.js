@@ -17,6 +17,7 @@ const appVisible = () => !$("#app").hidden;
 export function updatePinDots() {
   $$(".pin-dot").forEach((dot, i) => dot.classList.toggle("filled", i < entered.length));
   $("#pinDots").setAttribute("aria-label", t("pinProgress", { count: entered.length }));
+  $("#continuePin").disabled = entered.length !== 4 || submitting;
 }
 export function addDigit(d) {
   if (entered.length >= 4 || submitting) return;
@@ -38,12 +39,14 @@ function resetPin() {
 function showCreateBox(visible) {
   $("#pinCreate").hidden = !visible;
   $(".keypad").hidden = visible;
+  $("#continuePin").hidden = visible;
   if (visible) $("#pinCreateConfirm").focus();
 }
 
 export async function submitPin() {
   if (entered.length !== 4 || submitting) return;
   submitting = true;
+  updatePinDots();
   const pin = entered;
   const unlocking = Boolean(store.get(KEYS.token));
   $("#pinError").textContent = "";
@@ -68,6 +71,7 @@ export async function submitPin() {
     updatePinDots();
   } finally {
     submitting = false;
+    updatePinDots();
   }
 }
 

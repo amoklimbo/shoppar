@@ -49,12 +49,20 @@ const SHOP_WORDS = {
     "leite queijo iogurte iogurtes manteiga natas requeijao ovos ovo skyr kefir mozzarella milk cheese yogurt butter cream eggs egg",
   ),
   "Carne e peixe": w(
-    "frango carne bife bifes peru porco vaca salmao atum bacalhau peixe camarao fiambre chourico salsichas presunto hamburguer hamburgueres carne-picada polvo lulas robalo dourada chicken beef pork fish salmon tuna shrimp ham sausage meat",
+    "frango carne bife bifes peru porco vaca salmao bacalhau peixe camarao fiambre chourico salsichas presunto hamburguer hamburgueres carne-picada polvo lulas robalo dourada chicken beef pork fish salmon shrimp ham sausage meat",
   ),
   Padaria: w("pao baguete bolo bolos croissant torradas broa carcaca bread cake bagel pastel pasteis"),
   Mercearia: w(
-    "arroz massa esparguete farinha acucar sal azeite oleo vinagre cafe cha cereais bolachas feijao grao lentilhas conservas molho ketchup maionese mostarda cacau chocolate mel compota nutella aveia fermento rice pasta flour sugar salt coffee tea cereal cookies beans sauce snacks",
+    "arroz massa esparguete farinha acucar sal azeite oleo vinagre cafe cha cereais feijao grao lentilhas molho ketchup maionese mostarda cacau chocolate mel compota nutella aveia fermento rice pasta flour sugar salt coffee tea cereal beans sauce",
   ),
+  Conservas: w(
+    "atum sardinhas sardinha cavala anchovas conservas conserva pate ervilhas milho cogumelos-lata tuna sardines mackerel canned",
+  ),
+  "Snacks e doces": w(
+    "bolachas bolacha chocolate chocolates gomas rebuscados pipocas batatas-fritas amendoins frutos-secos barras snacks cookies candy popcorn nuts crisps biscoitos doces",
+  ),
+  Animais: w("racao areia coleira petisco gato cao pet dog"),
+  Bebé: w("fraldas papas biberao chucha toalhitas diapers baby"),
   Bebidas: w("agua sumo sumos refrigerante cerveja vinho cola sumol gin whisky vodka licor espumante juice water beer wine soda"),
   Congelados: w("gelado gelados congelado congelados nuggets pizza pizzas frozen"),
   Higiene: w(
@@ -67,7 +75,10 @@ const SHOP_WORDS = {
 const SHOP_PHRASES = {
   Higiene: ["pasta de dentes", "papel higienico", "gel de banho", "fio dentario", "protetor solar"],
   Casa: ["sacos do lixo", "papel de cozinha", "detergente da loica", "pastilhas maquina", "saco do lixo"],
-  Mercearia: ["batatas fritas", "azeitonas"],
+  Mercearia: [],
+  Conservas: ["tomate pelado", "feijao em lata", "grao em lata", "azeitonas", "atum em lata"],
+  "Snacks e doces": ["batatas fritas", "frutos secos"],
+  "Carne e peixe": ["atum fresco", "lombo de atum", "carne picada"],
   Vegetais: ["feijao verde"],
 };
 const HOME_WORDS = {
@@ -177,12 +188,18 @@ export function guessCategory(list, name) {
   return lookup(name, home ? HOME_WORDS : SHOP_WORDS, home ? HOME_PHRASES : SHOP_PHRASES);
 }
 
-export function suggestions(list, text, limit = 4) {
+// alias: devolve o nome tal como é mostrado (ex.: "Leite" → "Milk"), para também se encontrar por aí.
+export function suggestions(list, text, limit = 4, alias = (x) => x) {
   const q = normalize(text);
   if (q.length < 2) return [];
   const prefix = `${isHomeList(list) ? "h" : "s"}:`;
   return Object.entries(load())
-    .filter(([key, v]) => key.startsWith(prefix) && normalize(v.name).includes(q) && normalize(v.name) !== q)
+    .filter(
+      ([key, v]) =>
+        key.startsWith(prefix) &&
+        [v.name, alias(v.name)].some((n) => normalize(n).includes(q)) &&
+        ![v.name, alias(v.name)].some((n) => normalize(n) === q),
+    )
     .sort(
       (a, b) =>
         Number(normalize(b[1].name).startsWith(q)) - Number(normalize(a[1].name).startsWith(q)) ||

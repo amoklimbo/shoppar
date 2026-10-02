@@ -39,20 +39,20 @@ test("adicionar, concluir, editar, histórico e eliminar produto", async () => {
   await page.fill("#itemPrice", "1,5");
   await page.click("#addItem");
   await page.waitForSelector(".item .item-name");
-  assert.equal(await page.textContent(".item .item-name"), "Leite");
+  assert.equal(await page.textContent(".item .item-name"), "Milk");
 
   await page.click(".item .check");
   await page.waitForSelector(".item.done");
 
   await page.click('.nav-item[data-view="historyView"]');
   await page.waitForSelector(".history-row");
-  assert.match(await page.textContent(".history-row"), /Leite/);
+  assert.match(await page.textContent(".history-row"), /Milk/);
 
   await page.click('.nav-item[data-view="listsView"]');
   await page.click(".item .row-action:not(.danger)");
   await page.fill("#editItemName", "Leite Magro");
   await page.click("#editSave");
-  await page.waitForFunction(() => document.querySelector(".item .item-name")?.textContent === "Leite Magro");
+  await page.waitForFunction(() => document.querySelector(".item .item-name")?.textContent === "Skim milk");
 
   page.on("dialog", (d) => d.accept());
   await page.click(".item .row-action.danger");

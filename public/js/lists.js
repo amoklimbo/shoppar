@@ -2,6 +2,7 @@ import { state, store, KEYS } from "./state.js";
 import { api } from "./api.js";
 import { t, catLabel, listLabel, formatPrice } from "./i18n.js";
 import { $, el, icon, toast, openModal, closeModal, errorText } from "./dom.js";
+import { displayName } from "./names.js";
 import { categoriesFor, categoryRank, isHomeList, guessCategory, suggestions, remember, learnFrom } from "./catalog.js";
 
 const isHome = () => isHomeList(state.activeList);
@@ -34,34 +35,77 @@ export function renderLists() {
   applyShopMode();
 }
 
+const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
 export async function selectList(list, direction = 0) {
   if (state.activeList?.id === list.id) return;
+  const panel = $(".list-panel");
+  // sai para o lado de onde veio o gesto; entra pelo lado oposto
+  if (direction && !reducedMotion() && panel.animate) {
+    await panel
+      .animate(
+        [
+          { transform: panel.style.transform || "none", opacity: 1 },
+          { transform: `translateX(${-direction * 90}px)`, opacity: 0 },
+        ],
+        { duration: 150, easing: "ease-in" },
+      )
+      .finished.catch(() => {});
+  }
   state.activeList = list;
   categoryTouched = false;
   state.activeCategory = "Outros";
+  panel.style.transform = "";
+  panel.style.opacity = "";
   renderLists();
   $(".list-tab.active")?.scrollIntoView?.({ inline: "center", block: "nearest" });
   onNameInput();
   await loadItems();
-  if (direction) slide(direction);
+  if (direction && !reducedMotion() && panel.animate) {
+    panel.animate(
+      [
+        { transform: `translateX(${direction * 90}px)`, opacity: 0 },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: 300, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+    );
+  }
 }
 
-function slide(direction) {
-  const panel = $(".list-panel");
-  panel.classList.remove("slide-next", "slide-prev");
-  void panel.offsetWidth; // reinicia a animação
-  panel.classList.add(direction > 0 ? "slide-next" : "slide-prev");
-}
-
-// Deslizar para o lado muda de lista (só em ecrãs tácteis; ignora campos e faixas com scroll próprio).
+// Deslizar para o lado muda de lista: a lista acompanha o dedo e, ao largar, sai e a nova entra.
+// Ignora campos de texto e faixas com scroll próprio.
 export function initSwipe() {
   const view = $("#listsView");
+  const panel = $(".list-panel");
   let start = null;
+  const neighbour = (dx) => state.lists[state.lists.findIndex((l) => l.id === state.activeList?.id) + (dx < 0 ? 1 : -1)];
+  const reset = () => {
+    panel.style.transition = "transform 0.18s ease, opacity 0.18s ease";
+    panel.style.transform = "";
+    panel.style.opacity = "";
+  };
   view.addEventListener(
     "touchstart",
     (e) => {
-      start = e.touches.length === 1 && !e.target.closest("input,textarea,select,.list-tabs,.category-row") ? e.touches[0] : null;
-      if (start) start = { x: start.clientX, y: start.clientY };
+      const touch = e.touches[0];
+      start =
+        e.touches.length === 1 && touch && !e.target.closest("input,textarea,select,.list-tabs,.category-row,.suggestions")
+          ? { x: touch.clientX, y: touch.clientY }
+          : null;
+      panel.style.transition = "none";
+    },
+    { passive: true },
+  );
+  view.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!start) return;
+      const dx = e.touches[0].clientX - start.x;
+      const dy = e.touches[0].clientY - start.y;
+      if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+      const pull = neighbour(dx) ? 0.7 : 0.2; // sem lista ao lado, o gesto "resiste"
+      panel.style.transform = `translateX(${Math.max(-140, Math.min(140, dx * pull))}px)`;
+      panel.style.opacity = String(1 - Math.min(Math.abs(dx) / 500, 0.4));
     },
     { passive: true },
   );
@@ -73,13 +117,13 @@ export function initSwipe() {
       const dx = end.clientX - start.x;
       const dy = end.clientY - start.y;
       start = null;
-      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
-      const index = state.lists.findIndex((l) => l.id === state.activeList?.id);
-      const next = state.lists[index + (dx < 0 ? 1 : -1)];
-      if (next) selectList(next, dx < 0 ? 1 : -1);
+      const next = neighbour(dx);
+      if (Math.abs(dx) >= 70 && Math.abs(dx) >= Math.abs(dy) * 1.6 && next) selectList(next, dx < 0 ? 1 : -1);
+      else reset();
     },
     { passive: true },
   );
+  view.addEventListener("touchcancel", () => ((start = null), reset()), { passive: true });
 }
 
 export async function loadLists() {
@@ -145,7 +189,7 @@ function itemRow(item, withCategory) {
         class: "check",
         role: "checkbox",
         "aria-checked": String(Boolean(item.done)),
-        "aria-label": item.name,
+        "aria-label": displayName(item.name),
         onclick: (e) => {
           e.stopPropagation();
           toggleItem(item);
@@ -153,7 +197,12 @@ function itemRow(item, withCategory) {
       },
       icon("check"),
     ),
-    el("div", { class: "item-body" }, el("strong", { class: "item-name" }, item.name), el("div", { class: "item-meta" }, meta.join(" · "))),
+    el(
+      "div",
+      { class: "item-body" },
+      el("strong", { class: "item-name" }, displayName(item.name)),
+      el("div", { class: "item-meta" }, meta.join(" · ")),
+    ),
     el(
       "div",
       { class: "item-actions" },
@@ -163,7 +212,7 @@ function itemRow(item, withCategory) {
           type: "button",
           class: "row-action",
           title: t("edit"),
-          "aria-label": `${t("edit")}: ${item.name}`,
+          "aria-label": `${t("edit")}: ${displayName(item.name)}`,
           onclick: () => openEdit(item),
         },
         icon("edit"),
@@ -174,7 +223,7 @@ function itemRow(item, withCategory) {
           type: "button",
           class: "row-action danger",
           title: t("deleteItem"),
-          "aria-label": `${t("deleteItem")}: ${item.name}`,
+          "aria-label": `${t("deleteItem")}: ${displayName(item.name)}`,
           onclick: () => deleteItem(item),
         },
         icon("close"),
@@ -277,7 +326,7 @@ export function onNameInput() {
 
 function renderSuggestions(name) {
   const box = $("#suggestions");
-  const found = suggestions(state.activeList, name);
+  const found = suggestions(state.activeList, name, 4, displayName);
   box.hidden = found.length === 0;
   box.replaceChildren(
     ...found.map((s) =>
@@ -292,7 +341,7 @@ function renderSuggestions(name) {
 }
 
 function applySuggestion(s) {
-  $("#itemName").value = s.name;
+  $("#itemName").value = displayName(s.name);
   state.activeCategory = categoriesFor(state.activeList).includes(s.category) ? s.category : "Outros";
   categoryTouched = true;
   $("#itemQty").value = s.quantity || 1;
@@ -420,7 +469,7 @@ function removeWithUndo(items, message) {
   });
 }
 
-export const deleteItem = (item) => removeWithUndo([item], t("removed", { name: item.name }));
+export const deleteItem = (item) => removeWithUndo([item], t("removed", { name: displayName(item.name) }));
 
 export function clearCompleted() {
   const done = state.items.filter((i) => i.done);

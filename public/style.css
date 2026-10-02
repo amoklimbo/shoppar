@@ -107,7 +107,7 @@ button:active {
   display: block;
   margin-top: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 1.4px;
   font-weight: 500;
   opacity: 0.72;
@@ -127,7 +127,7 @@ button:active {
   color: var(--muted);
   padding: 6px 12px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .language-pill.active {
@@ -147,7 +147,7 @@ button:active {
 .pin-copy p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 .pin-dots {
   display: flex;
@@ -167,7 +167,7 @@ button:active {
 .error {
   height: 20px;
   color: var(--danger);
-  font-size: 12px;
+  font-size: 14px;
 }
 .keypad {
   display: grid;
@@ -246,7 +246,7 @@ button:active {
 .topbar-brand small {
   display: block;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 1px;
 }
 .topbar-actions {
@@ -291,7 +291,7 @@ button:active {
 }
 
 .modal label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
   font-weight: 500;
 }
@@ -354,7 +354,7 @@ button:active {
   display: flex;
   gap: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 4px;
 }
 .history-body div span:first-child {
@@ -365,13 +365,13 @@ button:active {
 }
 .history-right strong {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 .history-right small {
   display: block;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 3px;
 }
 .settings-card {
@@ -397,7 +397,7 @@ button:active {
 .setting-row small {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 4px;
   max-width: 260px;
 }
@@ -414,7 +414,7 @@ button:active {
   color: var(--muted);
   padding: 6px 10px;
   border-radius: 7px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .segment.active {
@@ -427,7 +427,7 @@ button:active {
   color: var(--text);
   border-radius: 10px;
   padding: 8px 11px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .danger-text {
@@ -450,7 +450,7 @@ button:active {
 .about-card span {
   display: block;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 3px;
 }
 .bottom-nav {
@@ -484,7 +484,7 @@ html[data-theme="light"] .bottom-nav {
 }
 .nav-item b {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 2px;
   font-weight: 500;
 }
@@ -535,8 +535,11 @@ html[data-theme="light"] .bottom-nav {
 }
 .modal-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: 1fr 1fr 1.3fr;
+  gap: 10px;
+}
+.modal-grid #editStoreField {
+  grid-column: 1 / -1;
 }
 .modal-actions {
   display: flex;
@@ -557,7 +560,7 @@ html[data-theme="light"] .bottom-nav {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 9px 14px;
-  font-size: 13px;
+  font-size: 14px;
   transition: 0.18s;
   box-shadow: var(--shadow);
 }
@@ -576,7 +579,7 @@ html[data-theme="light"] .bottom-nav {
 .modal-intro {
   margin: -4px 0 16px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .modal-error {
@@ -627,7 +630,7 @@ html[data-theme="light"] .bottom-nav {
   color: var(--text);
   border-radius: 10px;
   padding: 9px 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .store-field[hidden],
@@ -688,7 +691,7 @@ html[data-theme="light"] .bottom-nav {
   border-radius: 999px;
   padding: 6px 9px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 .recipe-ingredients .more {
   color: var(--accent);
@@ -696,7 +699,7 @@ html[data-theme="light"] .bottom-nav {
 .recipe-notes {
   margin: 7px 0 12px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -706,7 +709,7 @@ html[data-theme="light"] .bottom-nav {
 }
 .secondary.small {
   padding: 8px 11px;
-  font-size: 12px;
+  font-size: 14px;
 }
 textarea {
   width: 100%;
@@ -718,7 +721,7 @@ textarea {
   padding: 10px;
   outline: 0;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .modal textarea:focus {
@@ -748,10 +751,9 @@ textarea {
 }
 .search-group-title {
   padding: 8px 3px 5px;
-  color: var(--accent);
-  font-size: 13px;
-  letter-spacing: 0.14em;
-  font-weight: 600;
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 650;
 }
 .search-result {
   display: flex;
@@ -766,19 +768,19 @@ textarea {
   text-align: left;
 }
 .search-result strong {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .search-result small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 .search-empty,
 .search-loading {
   text-align: center;
   color: var(--muted);
   padding: 25px;
-  font-size: 13px;
+  font-size: 14px;
 }
 @media (max-width: 700px) {
   .topbar {
@@ -805,7 +807,7 @@ textarea {
   display: block;
   margin-top: 10px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 1.2px;
   font-weight: 500;
   opacity: 0.75;
@@ -846,7 +848,7 @@ textarea {
 }
 .nav-item b {
   margin-top: 3px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
 }
 .recipe-add-modal select {
@@ -888,7 +890,7 @@ textarea {
 .recipe-choice span {
   margin: 0 !important;
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
 }
 .empty-ingredient {
   color: var(--muted) !important;
@@ -956,7 +958,7 @@ textarea {
 .pin-create p {
   margin: 6px 0 14px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .pin-create .modal-actions {
@@ -1123,13 +1125,9 @@ select:focus-visible {
 }
 .category-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 12px;
-  scrollbar-width: none;
-}
-.category-row::-webkit-scrollbar {
-  display: none;
+  padding-bottom: 14px;
 }
 .category-chip {
   flex: 0 0 auto;
@@ -1476,24 +1474,6 @@ select:focus-visible {
   font-size: 14px;
   font-weight: 650;
 }
-.list-panel.slide-next {
-  animation: slide-in-next 0.22s ease-out;
-}
-.list-panel.slide-prev {
-  animation: slide-in-prev 0.22s ease-out;
-}
-@keyframes slide-in-next {
-  from {
-    opacity: 0.3;
-    transform: translateX(36px);
-  }
-}
-@keyframes slide-in-prev {
-  from {
-    opacity: 0.3;
-    transform: translateX(-36px);
-  }
-}
 
 /* modo compras: só a lista, em letra grande */
 .shopping .add-bar,
@@ -1534,4 +1514,29 @@ select:focus-visible {
 .toast.error {
   background: #8f2f2f;
   color: #fff;
+}
+
+/* Shoppar 3.3 — encaixes e tamanhos de letra */
+.field-label {
+  display: block;
+  margin: 18px 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+.add-details .field-label {
+  margin-top: 6px;
+}
+.modal label span,
+.add-fields label span {
+  font-size: 14px;
+}
+.modal {
+  font-size: 16px;
+}
+.modal-actions {
+  margin-top: 20px;
+}
+.modal .modal-grid {
+  margin-top: 4px;
 }

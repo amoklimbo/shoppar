@@ -51,6 +51,7 @@ function bind() {
   // PIN
   $$("[data-digit]").forEach((b) => b.addEventListener("click", () => addDigit(b.dataset.digit)));
   $("#deleteDigit").addEventListener("click", removeDigit);
+  $("#continuePin").addEventListener("click", submitPin);
   $("#pinCreateConfirm").addEventListener("click", confirmCreate);
   $("#pinCreateCancel").addEventListener("click", cancelCreate);
   document.addEventListener("keydown", (e) => {

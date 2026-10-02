@@ -1,3 +1,4 @@
+import { displayName } from "./names.js";
 import { state } from "./state.js";
 import { api } from "./api.js";
 import { t, catLabel } from "./i18n.js";
@@ -49,7 +50,7 @@ function renderResults(data) {
         el(
           "button",
           { type: "button", class: "search-result", onclick: () => openResult(key, x) },
-          el("strong", {}, x.name || x.item_name),
+          el("strong", {}, displayName(x.name || x.item_name)),
           el("small", {}, sub),
         ),
       );

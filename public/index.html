@@ -81,7 +81,7 @@
           <img src="/icons/shoppar-512.png" alt="Shoppar" />
           <h1>Shoppar</h1>
           <p data-i18n="subtitle">Shared shopping list</p>
-          <span class="app-version">v3.2</span>
+          <span class="app-version">v3.3</span>
         </div>
 
         <div class="pin-language" role="group" aria-label="Language">
@@ -119,6 +119,7 @@
             <svg class="icon" aria-hidden="true"><use href="#i-backspace" /></svg>
           </button>
         </div>
+        <button type="button" id="continuePin" class="primary pin-continue" disabled data-i18n="continue">Continue</button>
       </section>
 
       <!-- APP -->
@@ -197,6 +198,7 @@
               <span id="categoryHint" class="category-hint" hidden></span>
             </div>
             <div id="addDetails" class="add-details" hidden>
+              <span class="field-label" data-i18n="category">Category</span>
               <div id="categoryChips" class="category-row" role="group" data-i18n-aria="ariaCategory" aria-label="Category"></div>
               <div class="add-fields">
                 <label
@@ -306,7 +308,7 @@
             <div class="about-logo"><img src="/icons/shoppar-180.png" alt="" /></div>
             <strong>Shoppar</strong>
             <span data-i18n="aboutText">Shared shopping, kept simple.</span>
-            <small class="app-version-inside">v3.2</small>
+            <small class="app-version-inside">v3.3</small>
           </section>
         </section>
 
@@ -402,6 +404,7 @@
           </div>
           <input id="editItemId" type="hidden" />
           <label><span data-i18n="itemName">Item</span><input id="editItemName" maxlength="120" /></label>
+          <span class="field-label" data-i18n="category">Category</span>
           <div
             id="editCategoryChips"
             class="category-row modal-categories"
