@@ -1,0 +1,17 @@
+{
+  "name": "shoppar-tools",
+  "private": true,
+  "description": "Ferramentas de desenvolvimento do Shoppar (testes e formatação). Isolado da raiz para não afetar os deploys do Pages/Worker.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "format": "prettier --print-width 140 --write ../public/js ../public/style.css ../public/index.html ../public/sw.js ../worker/src/index.js tests",
+    "format:check": "prettier --print-width 140 --check ../public/js ../public/style.css ../public/index.html ../public/sw.js ../worker/src/index.js tests"
+  },
+  "devDependencies": {
+    "@sparticuz/chromium": "^138.0.0",
+    "playwright-core": "^1.50.0",
+    "prettier": "^3.3.0",
+    "wrangler": "^4.0.0"
+  }
+}

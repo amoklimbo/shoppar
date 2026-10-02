@@ -1,20 +1,17 @@
 {
+  "id": "/",
   "name": "Shoppar",
   "short_name": "Shoppar",
+  "description": "Compras partilhadas, de forma simples.",
+  "lang": "pt-PT",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#101522",
-  "theme_color": "#101522",
+  "orientation": "portrait",
+  "background_color": "#f5f5f2",
+  "theme_color": "#f5f5f2",
   "icons": [
-    {
-      "src": "/icons/shoppar-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/shoppar-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "/icons/shoppar-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/shoppar-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

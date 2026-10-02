@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS history (
   category TEXT NOT NULL,
   price REAL,
   quantity REAL NOT NULL DEFAULT 1,
+  unit TEXT,
   completed_at INTEGER NOT NULL,
   FOREIGN KEY (list_id) REFERENCES lists(id)
 );
@@ -44,6 +45,12 @@ CREATE TABLE IF NOT EXISTS recipes (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (household_id) REFERENCES households(id)
+);
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT NOT NULL,
+  window INTEGER NOT NULL,
+  count INTEGER NOT NULL,
+  PRIMARY KEY (key, window)
 );
 CREATE INDEX IF NOT EXISTS idx_items_list ON items(list_id);
 CREATE INDEX IF NOT EXISTS idx_history_list ON history(list_id);
