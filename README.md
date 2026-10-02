@@ -1,69 +1,47 @@
-# Shoopar
+# Shoppar
 
-Aplicação de compras partilhada para duas pessoas.
+Aplicação web/PWA de compras partilhadas. Frontend estático (HTML + CSS + JavaScript em módulos ES, sem build) em Cloudflare Pages; API num Cloudflare Worker com base de dados D1.
 
-## Arquitectura
+```text
+public/   → Cloudflare Pages (output directory: public, sem build command)
+worker/   → Cloudflare Worker "shoppar" + D1 "shoopar-db" (binding DB)
+tools/    → testes e2e e formatação (não são publicados)
+```
 
-- Frontend: Cloudflare Pages
-- API: Cloudflare Worker
-- Base de dados: Cloudflare D1
-- PIN: 4 dígitos
-- PWA: instalação no iPhone
+## Frontend (`public/`)
 
-## Funcionalidades V1
+| Ficheiro | Responsabilidade |
+|---|---|
+| `index.html` | estrutura, ícones SVG (sprite), modais |
+| `style.css` | estilos e temas claro/escuro |
+| `js/main.js` | arranque e ligação de eventos |
+| `js/state.js` | configuração (`API`, `APP_VERSION`), `localStorage` seguro, estado |
+| `js/api.js` | pedidos à API, tratamento de 401 |
+| `js/auth.js` | ecrã do PIN, criação de agregado com confirmação, bloqueio aos 30 s |
+| `js/lists.js` · `history.js` · `recipes.js` · `search.js` | funcionalidades |
+| `js/prefs.js` | idioma, tema, alterar PIN |
+| `js/i18n.js` · `translations.js` | PT/EN (as duas línguas têm de ter as mesmas chaves) |
+| `_headers` | CSP e restantes cabeçalhos de segurança do Pages |
+| `sw.js` | service worker (rede primeiro, cache para offline) |
 
-- Lista partilhada entre dois iPhones
-- Entrada apenas com PIN de 4 dígitos
-- Sincronização automática
-- Várias listas
-- Categorias
-- Quantidade
-- Preço estimado
-- Total estimado
-- Marcar como comprado
-- Histórico
-- Modo escuro
-- PWA / ícone Shoopar
+## Nova versão — onde mudar o número
 
-## Publicação
+`APP_VERSION` em `public/js/state.js`, `CACHE` em `public/sw.js`, `VERSION` em `worker/src/index.js` e o texto `vX.Y` em `index.html`. O teste `quality.test.mjs` falha se não coincidirem.
 
-### GitHub
-Colocar todo o conteúdo deste ZIP no repositório `shoopar`.
+## Publicar
 
-### Cloudflare D1
-Criar uma base D1 chamada `shoopar-db` e executar `worker/schema.sql`.
+1. **Worker primeiro** (a nova app usa endpoints novos): substituir `worker/` no GitHub; o Cloudflare faz deploy. As migrações da D1 são automáticas e só acrescentam (coluna `history.unit`, tabela `rate_limits`); nenhum dado é apagado.
+2. **Depois `public/`**: o Pages publica sozinho.
 
-### Cloudflare Worker
-No `worker/wrangler.toml`, colocar o `database_id` real da D1.
-
-Depois, dentro de `worker`:
+## Testes
 
 ```bash
-npx wrangler deploy
+cd tools
+npm install
+npm test            # Worker local + D1 local descartável + Chromium; nunca toca na produção
+npm run format:check
 ```
 
-### Cloudflare Pages
-Ligar o repositório GitHub ao Cloudflare Pages.
+## Segurança — o que é e o que não é
 
-- Build command: vazio
-- Output directory: `public`
-
-Depois do deploy do Worker, copiar o URL do Worker para `public/app.js`:
-
-```js
-const API_URL='https://TEU-WORKER.workers.dev';
-```
-
-## Primeiro acesso
-
-No primeiro iPhone:
-1. Abrir a aplicação.
-2. Criar um PIN de 4 dígitos.
-3. A lista fica criada na Cloudflare D1.
-
-No segundo iPhone:
-1. Abrir exactamente a mesma aplicação.
-2. Introduzir o mesmo PIN.
-3. O servidor encontra a lista correspondente ao PIN e devolve o acesso.
-
-O PIN é intencionalmente simples, conforme pedido. Não deve ser usado para proteger informação sensível.
+O PIN de 4 dígitos identifica o agregado: quem o souber entra. O servidor limita as tentativas por IP (30/min) e o dispositivo só guarda o token do agregado, nunca o PIN. É adequado para uma lista de compras, não para dados sensíveis.
