@@ -1,7 +1,7 @@
 // Shoppar API — Cloudflare Worker + D1.
 // Todas as migrações são ADITIVAS (nunca apagam nem alteram dados existentes).
 
-const VERSION = "3.5.0";
+const VERSION = "3.6.0";
 
 const LIMITS = {
   name: 120,
@@ -79,6 +79,8 @@ function ensureSchema(env) {
     if (!(await columns("history")).includes("unit")) await env.DB.prepare("ALTER TABLE history ADD COLUMN unit TEXT").run();
     if (!(await columns("history")).includes("store")) await env.DB.prepare("ALTER TABLE history ADD COLUMN store TEXT").run();
     // legacy_ok: tokens antigos (o próprio id do agregado) deixam de valer depois de uma mudança de PIN.
+    if (!(await columns("households")).includes("settings"))
+      await env.DB.prepare("ALTER TABLE households ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'").run();
     if (!(await columns("households")).includes("legacy_ok"))
       await env.DB.prepare("ALTER TABLE households ADD COLUMN legacy_ok INTEGER NOT NULL DEFAULT 1").run();
     await env.DB.batch([
@@ -278,6 +280,23 @@ async function route(req, env, url) {
       env.DB.prepare("DELETE FROM sessions WHERE household_id=? AND id IS NOT ?").bind(hid, keep),
     ]);
     return json({ ok: true, token: keep ? req.headers.get("x-household-token") : await createSession(env, hid) });
+  }
+
+  // Preferências (idioma e tema): cópia de segurança por agregado, para quando o dispositivo perde os dados locais.
+  if (path === "/api/settings") {
+    const row = await env.DB.prepare("SELECT settings FROM households WHERE id=?").bind(hid).first();
+    let saved = {};
+    try {
+      saved = JSON.parse(row?.settings || "{}");
+    } catch {}
+    if (method === "GET") return json(saved);
+    if (method === "PUT") {
+      const data = await readBody(req);
+      if (["EN", "PT"].includes(data.lang)) saved.lang = data.lang;
+      if (["light", "dark"].includes(data.theme)) saved.theme = data.theme;
+      await env.DB.prepare("UPDATE households SET settings=? WHERE id=?").bind(JSON.stringify(saved), hid).run();
+      return json(saved);
+    }
   }
 
   if (path === "/api/lists" && method === "GET") {
