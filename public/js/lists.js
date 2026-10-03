@@ -48,6 +48,7 @@ export async function selectList(list, direction = 0) {
   const from = state.lists.findIndex((l) => l.id === state.activeList?.id);
   const dir = direction || Math.sign(state.lists.findIndex((l) => l.id === list.id) - from);
   const animate = dir && !reducedMotion() && panel.animate;
+  const distance = Math.round(panel.offsetWidth * 0.3);
   try {
     // 1. o conteúdo atual sai para o lado do gesto
     if (animate) {
@@ -55,9 +56,9 @@ export async function selectList(list, direction = 0) {
         .animate(
           [
             { transform: panel.style.transform || "none", opacity: Number(panel.style.opacity) || 1 },
-            { transform: `translateX(${-dir * 70}px)`, opacity: 0 },
+            { transform: `translateX(${-dir * distance}px)`, opacity: 0 },
           ],
-          { duration: 110, easing: "ease-in" },
+          { duration: 120, easing: "ease-out" },
         )
         .finished.catch(() => {});
     }
@@ -77,10 +78,10 @@ export async function selectList(list, direction = 0) {
     if (animate) {
       panel.animate(
         [
-          { transform: `translateX(${dir * 70}px)`, opacity: 0 },
+          { transform: `translateX(${dir * distance}px)`, opacity: 0 },
           { transform: "none", opacity: 1 },
         ],
-        { duration: 240, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+        { duration: 210, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
       );
     }
   } finally {
@@ -106,7 +107,7 @@ export function initSwipe() {
     (e) => {
       const touch = e.touches[0];
       const ignore = e.target.closest("input,textarea,select,.list-tabs,.category-row,.suggestions,.bottom-nav,.topbar,.toast");
-      start = active() && e.touches.length === 1 && touch && !ignore ? { x: touch.clientX, y: touch.clientY } : null;
+      start = active() && e.touches.length === 1 && touch && !ignore ? { x: touch.clientX, y: touch.clientY, t: Date.now() } : null;
       panel.style.transition = "none";
     },
     { passive: true },
@@ -118,9 +119,10 @@ export function initSwipe() {
       const dx = e.touches[0].clientX - start.x;
       const dy = e.touches[0].clientY - start.y;
       if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
-      const pull = neighbour(dx) ? 0.7 : 0.2; // sem lista ao lado, o gesto "resiste"
-      panel.style.transform = `translateX(${Math.max(-140, Math.min(140, dx * pull))}px)`;
-      panel.style.opacity = String(1 - Math.min(Math.abs(dx) / 500, 0.4));
+      const pull = neighbour(dx) ? 1 : 0.25; // sem lista ao lado, o gesto "resiste"
+      const limit = panel.offsetWidth * 0.5;
+      panel.style.transform = `translateX(${Math.max(-limit, Math.min(limit, dx * pull))}px)`;
+      panel.style.opacity = String(1 - Math.min(Math.abs(dx) / 900, 0.25));
     },
     { passive: true },
   );
@@ -131,9 +133,11 @@ export function initSwipe() {
       const end = e.changedTouches[0];
       const dx = end.clientX - start.x;
       const dy = end.clientY - start.y;
+      const startedAt = start.t;
       start = null;
       const next = neighbour(dx);
-      if (Math.abs(dx) >= 70 && Math.abs(dx) >= Math.abs(dy) * 1.6 && next) selectList(next, dx < 0 ? 1 : -1);
+      const fast = Math.abs(dx) >= 30 && Math.abs(dx) / Math.max(Date.now() - startedAt, 1) > 0.35; // gesto rápido também vale
+      if ((Math.abs(dx) >= 55 || fast) && Math.abs(dx) >= Math.abs(dy) * 1.6 && next) selectList(next, dx < 0 ? 1 : -1);
       else reset();
     },
     { passive: true },

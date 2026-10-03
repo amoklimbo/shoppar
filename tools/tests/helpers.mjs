@@ -79,14 +79,22 @@ async function waitFor(url, ms = 150000) {
   throw new Error("timeout a aguardar " + url);
 }
 
-export async function startStack({ workerPort = 8791, webPort = 8790 } = {}) {
+export async function startStack({ workerPort = 8791, webPort = 8790, vars = {} } = {}) {
   rmSync(STATE, { recursive: true, force: true });
   mkdirSync(STATE, { recursive: true });
   // Config de teste com database_id FALSO: impossível tocar na D1 real.
   const cfg = join(STATE, "wrangler.test.toml");
   writeFileSync(
     cfg,
-    `name = "shoppar-test"\nmain = "${join(ROOT, "worker/src/index.js")}"\ncompatibility_date = "2026-09-21"\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "shoppar-test-db"\ndatabase_id = "00000000-0000-0000-0000-000000000000"\n`,
+    `name = "shoppar-test"\nmain = "${join(ROOT, "worker/src/index.js")}"\ncompatibility_date = "2026-09-21"\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "shoppar-test-db"\ndatabase_id = "00000000-0000-0000-0000-000000000000"\n${
+      Object.keys(vars).length
+        ? "[vars]\n" +
+          Object.entries(vars)
+            .map(([k, v]) => `${k} = "${v}"`)
+            .join("\n") +
+          "\n"
+        : ""
+    }`,
   );
   const wr = (...a) => ["wrangler", ...a, "--config", cfg, "--persist-to", join(STATE, "d1")];
   execFileSync("npx", wr("d1", "execute", "DB", "--local", "--file", join(ROOT, "worker/schema.sql")), { cwd: TOOLS, stdio: "ignore" });

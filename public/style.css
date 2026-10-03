@@ -100,14 +100,14 @@ button:active {
 .pin-brand p {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
 }
 .app-version {
   display: block;
   margin-top: 8px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 1.4px;
   font-weight: 500;
   opacity: 0.72;
@@ -127,7 +127,7 @@ button:active {
   color: var(--muted);
   padding: 6px 12px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .language-pill.active {
@@ -147,7 +147,7 @@ button:active {
 .pin-copy p {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
 }
 .pin-dots {
   display: flex;
@@ -167,7 +167,7 @@ button:active {
 .error {
   height: 20px;
   color: var(--danger);
-  font-size: 14px;
+  font-size: 13px;
 }
 .keypad {
   display: grid;
@@ -246,7 +246,7 @@ button:active {
 .topbar-brand small {
   display: block;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 1px;
 }
 .topbar-actions {
@@ -291,7 +291,7 @@ button:active {
 }
 
 .modal label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--muted);
   font-weight: 500;
 }
@@ -347,14 +347,14 @@ button:active {
   min-width: 0;
 }
 .history-body strong {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .history-body div {
   display: flex;
   gap: 8px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 4px;
 }
 .history-body div span:first-child {
@@ -365,13 +365,13 @@ button:active {
 }
 .history-right strong {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 .history-right small {
   display: block;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 3px;
 }
 .settings-card {
@@ -391,13 +391,13 @@ button:active {
 }
 .setting-row strong {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .setting-row small {
   display: block;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 4px;
   max-width: 260px;
 }
@@ -414,7 +414,7 @@ button:active {
   color: var(--muted);
   padding: 6px 10px;
   border-radius: 7px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .segment.active {
@@ -427,7 +427,7 @@ button:active {
   color: var(--text);
   border-radius: 10px;
   padding: 8px 11px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .danger-text {
@@ -450,7 +450,7 @@ button:active {
 .about-card span {
   display: block;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 3px;
 }
 .bottom-nav {
@@ -484,7 +484,7 @@ html[data-theme="light"] .bottom-nav {
 }
 .nav-item b {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 2px;
   font-weight: 500;
 }
@@ -564,7 +564,7 @@ html[data-theme="light"] .bottom-nav {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 9px 14px;
-  font-size: 14px;
+  font-size: 13px;
   transition: 0.18s;
   box-shadow: var(--shadow);
 }
@@ -583,7 +583,7 @@ html[data-theme="light"] .bottom-nav {
 .modal-intro {
   margin: -4px 0 16px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .modal-error {
@@ -634,7 +634,7 @@ html[data-theme="light"] .bottom-nav {
   color: var(--text);
   border-radius: 10px;
   padding: 9px 12px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .store-field[hidden],
@@ -695,7 +695,7 @@ html[data-theme="light"] .bottom-nav {
   border-radius: 999px;
   padding: 6px 9px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
 }
 .recipe-ingredients .more {
   color: var(--accent);
@@ -703,7 +703,7 @@ html[data-theme="light"] .bottom-nav {
 .recipe-notes {
   margin: 7px 0 12px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -713,7 +713,7 @@ html[data-theme="light"] .bottom-nav {
 }
 .secondary.small {
   padding: 8px 11px;
-  font-size: 14px;
+  font-size: 13px;
 }
 textarea {
   width: 100%;
@@ -725,7 +725,7 @@ textarea {
   padding: 10px;
   outline: 0;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .modal textarea:focus {
@@ -772,19 +772,19 @@ textarea {
   text-align: left;
 }
 .search-result strong {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .search-result small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
 }
 .search-empty,
 .search-loading {
   text-align: center;
   color: var(--muted);
   padding: 25px;
-  font-size: 14px;
+  font-size: 13px;
 }
 @media (max-width: 700px) {
   .topbar {
@@ -811,7 +811,7 @@ textarea {
   display: block;
   margin-top: 10px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 1.2px;
   font-weight: 500;
   opacity: 0.75;
@@ -854,7 +854,7 @@ textarea {
 }
 .nav-item b {
   margin-top: 3px;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
 }
 .recipe-add-modal select {
@@ -896,7 +896,7 @@ textarea {
 .recipe-choice span {
   margin: 0 !important;
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
 }
 .empty-ingredient {
   color: var(--muted) !important;
@@ -964,7 +964,7 @@ textarea {
 .pin-create p {
   margin: 6px 0 14px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .pin-create .modal-actions {
@@ -1013,16 +1013,16 @@ select:focus-visible {
 }
 .page-heading h2 {
   margin: 0;
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1.1;
   letter-spacing: -0.025em;
-  font-weight: 650;
+  font-weight: 600;
 }
 .ghost-button {
   border: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   padding: 8px 0 8px 8px;
 }
@@ -1051,13 +1051,13 @@ select:focus-visible {
   background: transparent;
   color: var(--muted);
   padding: 10px 2px 9px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
 }
 .list-tab.active {
   color: var(--text);
   border-bottom-color: var(--accent);
-  font-weight: 650;
+  font-weight: 600;
 }
 .list-tab .icon {
   width: 18px;
@@ -1080,7 +1080,7 @@ select:focus-visible {
   border-radius: 14px;
   background: var(--card);
   color: var(--text);
-  font-size: 17px;
+  font-size: 16px;
 }
 .main-input::placeholder {
   color: var(--muted);
@@ -1115,7 +1115,7 @@ select:focus-visible {
   border: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .details-toggle .icon {
@@ -1143,14 +1143,14 @@ select:focus-visible {
   border-radius: 999px;
   background: transparent;
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .category-chip.active {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent-text);
-  font-weight: 650;
+  font-weight: 600;
 }
 .add-fields {
   display: grid;
@@ -1196,13 +1196,13 @@ select:focus-visible {
   align-items: baseline;
   gap: 8px;
   margin: 22px 0 2px;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text);
 }
 .group-count {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -1265,14 +1265,14 @@ select:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: top;
-  font-size: 18px;
-  font-weight: 560;
+  font-size: 16.5px;
+  font-weight: 500;
   line-height: 1.25;
   background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 2px;
 }
 .item.done .item-name {
   color: var(--muted);
-  font-weight: 450;
+  font-weight: 400;
   background-size: 100% 2px;
 }
 .item.just-done .item-name {
@@ -1286,7 +1286,7 @@ select:focus-visible {
 .item-meta {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 .item-actions {
@@ -1328,17 +1328,17 @@ select:focus-visible {
 }
 .total-slip span {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .total-slip small {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   opacity: 0.72;
 }
 .total-slip strong {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 650;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -1385,8 +1385,8 @@ select:focus-visible {
   border-radius: 999px;
   background: transparent;
   color: var(--text);
-  font-size: 14px;
-  font-weight: 560;
+  font-size: 13px;
+  font-weight: 500;
 }
 .mode-button .icon {
   width: 20px;
@@ -1425,8 +1425,8 @@ select:focus-visible {
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 600;
 }
 .suggestions {
   display: flex;
@@ -1449,12 +1449,12 @@ select:focus-visible {
   border-radius: 999px;
   background: var(--card);
   color: var(--text);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
 }
 .suggestion small {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .group-title .ghost-button {
@@ -1468,7 +1468,7 @@ select:focus-visible {
   align-items: center;
   gap: 14px;
   padding-right: 6px;
-  font-size: 15px;
+  font-size: 14px;
 }
 .toast-action {
   min-height: 36px;
@@ -1477,8 +1477,8 @@ select:focus-visible {
   border-radius: 999px;
   background: var(--accent);
   color: #10200a;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* modo compras: só a lista, em letra grande */
@@ -1491,10 +1491,10 @@ select:focus-visible {
   cursor: pointer;
 }
 .shopping .item-name {
-  font-size: 23px;
+  font-size: 20px;
 }
 .shopping .item-meta {
-  font-size: 15px;
+  font-size: 14px;
 }
 .shopping .check {
   flex-basis: 52px;
@@ -1505,10 +1505,10 @@ select:focus-visible {
   inset: 10px;
 }
 .shopping .group-title {
-  font-size: 16px;
+  font-size: 15px;
 }
 .shopping .total-slip strong {
-  font-size: 34px;
+  font-size: 28px;
 }
 
 /* avisos opacos (não deixam ver o conteúdo por baixo) */
@@ -1527,7 +1527,7 @@ select:focus-visible {
   display: block;
   margin: 18px 0 8px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 .add-details .field-label {
@@ -1535,7 +1535,7 @@ select:focus-visible {
 }
 .modal label span,
 .add-fields label span {
-  font-size: 14px;
+  font-size: 13px;
 }
 .modal {
   font-size: 16px;
@@ -1562,4 +1562,15 @@ select:focus-visible {
 .history-body div span + span::before {
   content: "·";
   margin: 0 6px;
+}
+.history-body div {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.history-body div span {
+  white-space: nowrap;
+}
+.history-right {
+  flex: 0 0 auto;
 }
