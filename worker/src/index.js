@@ -1,7 +1,7 @@
 // Shoppar API — Cloudflare Worker + D1.
 // Todas as migrações são ADITIVAS (nunca apagam nem alteram dados existentes).
 
-const VERSION = "3.6.0";
+const VERSION = "3.7.0";
 
 const LIMITS = {
   name: 120,
@@ -49,6 +49,18 @@ const clean = (value, max) =>
 async function sha256(value) {
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+// Hash do PIN. Com o segredo PIN_PEPPER configurado no Cloudflare usa HMAC-SHA256 (um dump da base de dados
+// deixa de permitir descobrir os PINs). Sem segredo, mantém o SHA-256 antigo. "legacy" serve para reconhecer
+// agregados ainda não migrados; são migrados no primeiro login com sucesso.
+async function pinHashes(env, pin) {
+  const legacy = await sha256(pin);
+  if (!env.PIN_PEPPER) return { current: legacy, legacy };
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.PIN_PEPPER), { name: "HMAC", hash: "SHA-256" }, false, [
+    "sign",
+  ]);
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`pin:${pin}`));
+  return { current: `v2:${bytesToHex(new Uint8Array(mac))}`, legacy };
 }
 async function readBody(req) {
   try {
@@ -198,14 +210,19 @@ async function access(req, env) {
   const data = await readBody(req);
   const pin = String(data.pin ?? "");
   if (!/^\d{4}$/.test(pin)) return fail(400, "invalid_pin", "PIN must contain exactly 4 digits.");
-  const pinHash = await sha256(pin);
-  const existing = await env.DB.prepare("SELECT id FROM households WHERE pin_hash=?").bind(pinHash).first();
+  const hashes = await pinHashes(env, pin);
+  const pinHash = hashes.current;
+  const existing = await env.DB.prepare("SELECT id,pin_hash FROM households WHERE pin_hash IN (?,?)")
+    .bind(hashes.current, hashes.legacy)
+    .first();
 
   const current = await householdFromToken(req, env);
   if (current && existing && existing.id !== current) return fail(401, "wrong_pin", "Incorrect PIN.");
   if (current && !existing) return fail(401, "wrong_pin", "Incorrect PIN.");
 
   if (existing) {
+    if (existing.pin_hash !== hashes.current)
+      await env.DB.prepare("UPDATE households SET pin_hash=? WHERE id=?").bind(hashes.current, existing.id).run();
     await ensureDefaultLists(env, existing.id);
     return json({ token: await createSession(env, existing.id), existing: true });
   }
@@ -219,7 +236,7 @@ async function access(req, env) {
     .run();
   if (!inserted.meta?.changes) {
     // Corrida: outro pedido criou o mesmo PIN entretanto.
-    const winner = await env.DB.prepare("SELECT id FROM households WHERE pin_hash=?").bind(pinHash).first();
+    const winner = await env.DB.prepare("SELECT id FROM households WHERE pin_hash IN (?,?)").bind(hashes.current, hashes.legacy).first();
     await ensureDefaultLists(env, winner.id);
     return json({ token: await createSession(env, winner.id), existing: true });
   }
@@ -270,8 +287,11 @@ async function route(req, env, url) {
   if (path === "/api/change-pin" && method === "POST") {
     const newPin = String((await readBody(req)).new_pin ?? "");
     if (!/^\d{4}$/.test(newPin)) return fail(400, "invalid_pin", "PIN must contain exactly 4 digits.");
-    const hash = await sha256(newPin);
-    const clash = await env.DB.prepare("SELECT id FROM households WHERE pin_hash=? AND id!=?").bind(hash, hid).first();
+    const hashes = await pinHashes(env, newPin);
+    const hash = hashes.current;
+    const clash = await env.DB.prepare("SELECT id FROM households WHERE pin_hash IN (?,?) AND id!=?")
+      .bind(hashes.current, hashes.legacy, hid)
+      .first();
     if (clash) return fail(409, "pin_in_use", "This PIN is already in use.");
     // Um PIN novo termina todas as outras sessões e os tokens antigos; este dispositivo mantém a sua.
     const keep = await currentSessionId(req);
