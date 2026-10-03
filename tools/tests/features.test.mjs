@@ -162,6 +162,8 @@ test("sincronização automática traz alterações feitas noutro dispositivo", 
   const page = await stack.newPage();
   await login(page, "3838");
   await page.waitForSelector("#emptyState", { state: "visible" });
+  await page.waitForFunction(() => document.querySelectorAll(".list-tab").length > 1);
+  await page.waitForTimeout(300);
   const tk = await token(page);
   const list = (await api(stack, "/api/lists", { token: tk })).data.results[0];
   await api(stack, `/api/lists/${list.id}/items`, { token: tk, method: "POST", body: { name: "Chegou de fora", category: "Outros" } });
@@ -330,6 +332,8 @@ test("swipe funciona também em áreas vazias do ecrã (fora da lista)", async (
   const page = await stack.newPage({ context: ctx });
   await login(page, "4545");
   await page.waitForSelector("#emptyState", { state: "visible" });
+  await page.waitForFunction(() => document.querySelectorAll(".list-tab").length > 1);
+  await page.waitForTimeout(300);
   await page.evaluate(() => {
     const target = document.documentElement; // área sem conteúdo
     const touch = (x) => new Touch({ identifier: 1, target, clientX: x, clientY: 700 });
@@ -391,4 +395,28 @@ test("definições ficam guardadas e recuperam-se do agregado se o dispositivo a
   await page.waitForSelector("#app:not([hidden])");
   await page.waitForFunction(() => localStorage.getItem("shoppar_lang") === "PT" && document.documentElement.dataset.theme === "dark");
   assert.equal(await page.textContent("#listsTitle"), "As minhas listas");
+});
+
+test("v3.8: cabeçalho fica fixo no scroll, separadores distintos e modal cabe no ecrã", async () => {
+  const page = await stack.newPage();
+  await page.setViewportSize({ width: 390, height: 700 });
+  await login(page, "3838");
+  for (let i = 0; i < 12; i++) await addViaUi(page, `Produto ${i}`);
+  await addViaUi(page, "Leite");
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const top = await page.$eval(".topbar", (el) => el.getBoundingClientRect().top);
+  assert.ok(top >= -1 && top <= 1, `topbar deve ficar no topo, está em ${top}`);
+  assert.equal(await page.$eval(".topbar", (el) => getComputedStyle(el).position), "sticky");
+  const bg = await page.$eval(".group-title", (el) => getComputedStyle(el).backgroundColor);
+  const itemBg = await page.$eval(".item", (el) => getComputedStyle(el).backgroundColor);
+  assert.notEqual(bg, itemBg);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator(".item .row-action:not(.danger)").first().click();
+  await page.waitForSelector("#editModal:not([hidden])");
+  const box = await page.$eval("#editModal .modal", (el) => {
+    const r = el.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom };
+  });
+  assert.ok(box.top >= 0 && box.bottom <= 700, `modal fora do ecrã: ${JSON.stringify(box)}`);
+  assert.equal(await page.evaluate(() => document.body.classList.contains("modal-open")), true);
 });

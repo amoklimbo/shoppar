@@ -47,7 +47,30 @@ async function sync() {
   }
 }
 
+// Cabeçalho fixo, viewport visual (teclado do iPhone) e bloqueio do scroll de fundo com modais abertos.
+function initViewport() {
+  const root = document.documentElement;
+  const vv = window.visualViewport;
+  const sync = () => {
+    if (!vv) return;
+    const keyboard = window.innerHeight - vv.height > 120;
+    root.style.setProperty("--vv-top", `${vv.offsetTop}px`);
+    root.style.setProperty("--vv-height", `${vv.height}px`);
+    root.style.setProperty("--vv-safe-bottom", keyboard ? "0px" : "env(safe-area-inset-bottom)");
+  };
+  vv?.addEventListener("resize", sync);
+  vv?.addEventListener("scroll", sync);
+  sync();
+  const bar = document.querySelector(".topbar");
+  const onScroll = () => bar?.classList.toggle("scrolled", window.scrollY > 4);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+  const update = () => document.body.classList.toggle("modal-open", Boolean(document.querySelector(".modal-backdrop:not([hidden])")));
+  new MutationObserver(update).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
+}
+
 function bind() {
+  initViewport();
   // PIN
   $$("[data-digit]").forEach((b) => b.addEventListener("click", () => addDigit(b.dataset.digit)));
   $("#deleteDigit").addEventListener("click", removeDigit);

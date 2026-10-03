@@ -1574,3 +1574,81 @@ select:focus-visible {
 .history-right {
   flex: 0 0 auto;
 }
+
+/* Shoppar 3.8 — cabeçalho fixo, separadores de categoria, modais seguros no iPhone */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  margin: calc(-18px - env(safe-area-inset-top)) -18px 12px;
+  padding: calc(12px + env(safe-area-inset-top)) 18px 12px;
+  background: var(--bg);
+  transition: box-shadow 0.2s ease;
+}
+.topbar.scrolled {
+  box-shadow:
+    0 1px 0 var(--line),
+    0 6px 14px -10px rgba(0, 0, 0, 0.35);
+}
+@media (max-width: 700px) {
+  .topbar {
+    margin-bottom: 10px;
+  }
+}
+.pin-screen {
+  padding-top: calc(30px + env(safe-area-inset-top));
+}
+.group-title {
+  margin: 20px 0 4px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--soft) 70%, transparent);
+  border-left: 3px solid var(--accent);
+  color: var(--accent-text);
+}
+.item-group.bought .group-title {
+  border-left-color: var(--line);
+  color: var(--muted);
+}
+.group-title .group-count {
+  margin-left: auto;
+}
+.group-title .ghost-button {
+  margin-left: 8px;
+}
+.item-group .item {
+  padding-left: 6px;
+}
+
+.modal-backdrop {
+  inset: auto;
+  left: 0;
+  right: 0;
+  top: var(--vv-top, 0px);
+  height: var(--vv-height, 100dvh);
+  padding: calc(env(safe-area-inset-top) + 10px) 12px calc(var(--vv-safe-bottom, env(safe-area-inset-bottom)) + 10px);
+  overscroll-behavior: contain;
+}
+.modal {
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.modal:not(.search-modal) .modal-actions {
+  position: sticky;
+  bottom: -18px;
+  margin: 20px -18px -18px;
+  padding: 12px 18px 18px;
+  background: var(--card);
+  border-radius: 0 0 18px 18px;
+}
+#recipeIngredients {
+  min-height: 120px;
+}
+#recipeNotes {
+  min-height: 70px;
+}
+body.modal-open {
+  overflow: hidden;
+}
